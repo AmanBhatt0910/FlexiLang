@@ -1,45 +1,263 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { Menu, X, ChevronDown, Github, Moon, Sun } from 'lucide-react';
 
 export default function Navbar() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const { user, logout } = useAuth();
+  const pathname = usePathname();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? 'hidden' : 'unset';
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isOpen]);
+
+  const navLinks = [
+    { name: 'Features', href: '/features' },
+    { name: 'Pricing', href: '/pricing' },
+    { name: 'Examples', href: '/examples' },
+    { name: 'Docs', href: '/docs' },
+  ];
 
   return (
-    <nav className="flex items-center justify-between p-4 bg-muted text-foreground border-b border-color-border">
-      <Link href="/" className="text-2xl font-extrabold text-primary hover:text-primary-hover transition">
-        FlexiLang
-      </Link>
-      <div className="flex gap-6">
-        {user ? (
-          <>
-            <Link href="/translate" className="text-lg font-medium text-primary hover:text-primary-hover transition">
-              Translate
-            </Link>
-            <button
-              onClick={logout}
-              className="text-lg font-medium text-accent hover:text-red-600 transition"
+    <nav 
+      className={`fixed top-0 w-full z-50 transition-all duration-300 ${
+        isScrolled || isOpen
+          ? 'bg-slate-900 backdrop-blur-lg shadow-md py-3'
+          : 'bg-transparent py-5'
+      }`}
+    >
+      <div className="container mx-auto px-4 flex items-center justify-between">
+        <Link href="/" className="flex items-center space-x-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600">
+            <span className="text-white font-bold text-lg">F</span>
+          </span>
+          <span className="font-bold text-xl">
+            <span className="text-blue-400">Flexi</span>
+            <span className="text-violet-400">Lang</span>
+          </span>
+        </Link>
+        
+        <div className="hidden md:flex items-center space-x-1">
+          {navLinks.map((link) => (
+            <Link 
+              key={link.name}
+              href={link.href}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                pathname === link.href
+                  ? 'text-white bg-slate-800'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+              }`}
             >
-              Logout
+              {link.name}
+            </Link>
+          ))}
+          
+          <div className="relative group">
+            <button className="flex items-center px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors">
+              <span>Products</span>
+              <ChevronDown className="ml-1 h-4 w-4" />
             </button>
-          </>
-        ) : (
-          <>
-            <Link
-              href="/login"
-              className="text-lg font-medium text-primary hover:text-primary-hover transition"
+            <div className="absolute left-0 mt-2 w-48 origin-top-left rounded-xl bg-slate-800 shadow-lg ring-1 ring-slate-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+              <div className="py-1 divide-y divide-slate-700">
+                <Link href="/translate" className="block px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 rounded-t-xl">
+                  Code Translator
+                </Link>
+                <Link href="/analyzer" className="block px-4 py-3 text-sm text-slate-200 hover:bg-slate-700">
+                  Code Analyzer
+                </Link>
+                <Link href="/formatter" className="block px-4 py-3 text-sm text-slate-200 hover:bg-slate-700 rounded-b-xl">
+                  Code Formatter
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="hidden md:flex items-center space-x-2">
+          <button
+            onClick={() => setIsDarkMode(!isDarkMode)}
+            className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors"
+            aria-label="Toggle dark mode"
+          >
+            {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </button>
+          
+          <a
+            href="https://github.com/flexilang/translate"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors"
+            aria-label="GitHub"
+          >
+            <Github className="h-5 w-5" />
+          </a>
+          
+          {user ? (
+            <>
+              <Link
+                href="/dashboard"
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800 text-white hover:bg-slate-700 transition-colors"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={logout}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/signup"
+                className="px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-500 hover:to-violet-500 transition shadow-md hover:shadow-blue-500/20"
+              >
+                Sign Up Free
+              </Link>
+            </>
+          )}
+        </div>
+        
+        <div className="md:hidden flex items-center">
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors"
+            aria-label="Toggle menu"
+          >
+            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        </div>
+      </div>
+      
+      <div 
+        className={`md:hidden fixed inset-0 z-50 bg-slate-900 transform transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="flex flex-col h-full pt-20 pb-6 px-4 overflow-y-auto">
+          <div className="flex-1 space-y-1">
+            {navLinks.map((link) => (
+              <Link 
+                key={link.name}
+                href={link.href}
+                className={`block px-4 py-3 rounded-lg text-base font-medium transition-colors ${
+                  pathname === link.href
+                    ? 'text-white bg-slate-800'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                {link.name}
+              </Link>
+            ))}
+            
+            <div className="py-2">
+              <div className="border-t border-slate-800 my-2"></div>
+              <p className="px-4 py-2 text-sm text-slate-500 font-medium">Products</p>
+            </div>
+            
+            <Link 
+              href="/translate" 
+              className="block px-4 py-3 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors"
             >
-              Login
+              Code Translator
             </Link>
-            <Link
-              href="/register"
-              className="text-lg font-medium text-primary hover:text-primary-hover transition"
+            <Link 
+              href="/analyzer" 
+              className="block px-4 py-3 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors"
             >
-              Register
+              Code Analyzer
             </Link>
-          </>
-        )}
+            <Link 
+              href="/formatter" 
+              className="block px-4 py-3 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors"
+            >
+              Code Formatter
+            </Link>
+          </div>
+          
+          <div className="space-y-3 pt-4 border-t border-slate-800">
+            <div className="flex items-center justify-between px-4">
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors"
+                aria-label="Toggle dark mode"
+              >
+                <div className="flex items-center space-x-2">
+                  {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                  <span>{isDarkMode ? 'Light mode' : 'Dark mode'}</span>
+                </div>
+              </button>
+              
+              <a
+                href="https://github.com/flexilang/translate"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors"
+                aria-label="GitHub"
+              >
+                <Github className="h-5 w-5" />
+              </a>
+            </div>
+            
+            {user ? (
+              <div className="space-y-2 px-2">
+                <Link
+                  href="/dashboard"
+                  className="block w-full px-4 py-3 text-center rounded-lg text-base font-medium bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-500 hover:to-violet-500 transition shadow-md"
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={logout}
+                  className="block w-full px-4 py-3 text-center rounded-lg text-base font-medium bg-slate-800 text-white hover:bg-slate-700 transition-colors"
+                >
+                  Logout
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2 px-2">
+                <Link
+                  href="/signup"
+                  className="block w-full px-4 py-3 text-center rounded-lg text-base font-medium bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-500 hover:to-violet-500 transition shadow-md"
+                >
+                  Sign Up Free
+                </Link>
+                <Link
+                  href="/login"
+                  className="block w-full px-4 py-3 text-center rounded-lg text-base font-medium bg-slate-800 text-white hover:bg-slate-700 transition-colors"
+                >
+                  Sign In
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </nav>
   );
