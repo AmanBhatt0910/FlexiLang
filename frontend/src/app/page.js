@@ -38,7 +38,7 @@ export default function Home() {
   };
 
   return (
-    <div className="h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden px-4 relative">
+    <div className="h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden px-4 relative py-8">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-10 left-10 w-64 h-64 bg-blue-500 rounded-full filter blur-3xl opacity-10"></div>
         <div className="absolute bottom-10 right-10 w-80 h-80 bg-purple-500 rounded-full filter blur-3xl opacity-10"></div>
@@ -162,7 +162,7 @@ export default function Home() {
           </a>
         </motion.div>
         
-        <motion.div variants={itemVariants} className="mt-16 pt-4 opacity-80">
+        {/* <motion.div variants={itemVariants} className="mt-16 pt-4 opacity-80">
           <p className="text-sm text-slate-400">Trusted by engineers at</p>
           <div className="flex flex-wrap justify-center items-center gap-6 mt-4">
             <span className="text-slate-400 font-semibold">Google</span>
@@ -171,7 +171,7 @@ export default function Home() {
             <span className="text-slate-400 font-semibold">Meta</span>
             <span className="text-slate-400 font-semibold">Netflix</span>
           </div>
-        </motion.div>
+        </motion.div> */}
       </motion.div>
     </div>
   );
