@@ -41,7 +41,7 @@ def greet(name):
   return (
     <div className="bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen text-white">
       <header className="border-b border-slate-700/50">
-        <div className="max-w-6xl mx-auto px-4 py-6">
+        <div className="max-w-6xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Code className="w-6 h-6 text-blue-400" />
@@ -67,94 +67,145 @@ def greet(name):
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
         >
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700/50 p-4">
-            <div className="mb-6">
-              <h2 className="text-sm font-semibold text-slate-300 mb-2">Documentation</h2>
-              <ul className="space-y-2">
-                <li>
-                  <button
-                    onClick={() => toggleSection('gettingStarted')}
-                    className="w-full flex items-center justify-between hover:bg-slate-700/20 p-2 rounded-lg"
-                  >
-                    <span>Getting Started</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${openSections.gettingStarted ? 'rotate-180' : ''}`} />
-                  </button>
-                  {openSections.gettingStarted && (
-                    <ul className="ml-4 space-y-2 mt-2">
-                      <li>
-                        <button
-                          onClick={() => setActiveSection('quick-start')}
-                          className={`w-full text-left p-2 rounded-lg ${activeSection === 'quick-start' ? 'bg-blue-500/20' : 'hover:bg-slate-700/20'}`}
-                        >
-                          Web Interface Guide
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          onClick={() => setActiveSection('security')}
-                          className={`w-full text-left p-2 rounded-lg ${activeSection === 'security' ? 'bg-blue-500/20' : 'hover:bg-slate-700/20'}`}
-                        >
-                          Security & Privacy
-                        </button>
-                      </li>
-                    </ul>
-                  )}
-                </li>
+          <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+            <div className="bg-slate-900 px-4 py-3 border-b border-slate-700">
+              <h2 className="font-medium text-white">Documentation</h2>
+              <p className="text-xs text-slate-400">Web Compiler v2.4.0</p>
+            </div>
+            
+            <div className="p-2">
+              <div className="mb-1">
+                <button
+                  onClick={() => toggleSection('gettingStarted')}
+                  className="w-full flex items-center justify-between p-2 rounded text-left hover:bg-slate-700/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-blue-400" />
+                    <span className="font-medium">Getting Started</span>
+                  </div>
+                  <ChevronDown 
+                    className={`w-4 h-4 text-slate-400 transition-transform ${openSections.gettingStarted ? 'rotate-180' : ''}`} 
+                  />
+                </button>
                 
-                <li>
-                  <button
-                    onClick={() => toggleSection('features')}
-                    className="w-full flex items-center justify-between hover:bg-slate-700/20 p-2 rounded-lg"
-                  >
-                    <span>Features</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${openSections.features ? 'rotate-180' : ''}`} />
-                  </button>
-                  {openSections.features && (
-                    <ul className="ml-4 space-y-2 mt-2">
-                      <li>
-                        <button
-                          onClick={() => setActiveSection('realtime')}
-                          className={`w-full text-left p-2 rounded-lg ${activeSection === 'realtime' ? 'bg-blue-500/20' : 'hover:bg-slate-700/20'}`}
-                        >
-                          Real-time Translation
-                        </button>
-                      </li>
-                      <li>
-                        <button
-                          onClick={() => setActiveSection('batch')}
-                          className={`w-full text-left p-2 rounded-lg ${activeSection === 'batch' ? 'bg-blue-500/20' : 'hover:bg-slate-700/20'}`}
-                        >
-                          Batch Processing
-                        </button>
-                      </li>
-                    </ul>
-                  )}
-                </li>
-
-                <li>
-                  <button
-                    onClick={() => toggleSection('languages')}
-                    className="w-full flex items-center justify-between hover:bg-slate-700/20 p-2 rounded-lg"
-                  >
-                    <span>Languages</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${openSections.languages ? 'rotate-180' : ''}`} />
-                  </button>
-                  {openSections.languages && (
-                    <ul className="ml-4 space-y-2 mt-2">
-                      {supportedLanguages.map((lang) => (
-                        <li key={lang.name}>
-                          <button
-                            onClick={() => setActiveSection(lang.name.toLowerCase())}
-                            className={`w-full text-left p-2 rounded-lg ${activeSection === lang.name.toLowerCase() ? 'bg-blue-500/20' : 'hover:bg-slate-700/20'}`}
-                          >
-                            {lang.name}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              </ul>
+                {openSections.gettingStarted && (
+                  <div className="ml-6 mt-1 space-y-1">
+                    <button
+                      onClick={() => setActiveSection('quick-start')}
+                      className={`w-full text-left p-2 text-sm rounded ${
+                        activeSection === 'quick-start' 
+                          ? 'bg-blue-500/20 text-blue-300' 
+                          : 'hover:bg-slate-700/50 text-slate-300'
+                      }`}
+                    >
+                      Web Interface Guide
+                    </button>
+                    <button
+                      onClick={() => setActiveSection('security')}
+                      className={`w-full text-left p-2 text-sm rounded ${
+                        activeSection === 'security' 
+                          ? 'bg-blue-500/20 text-blue-300' 
+                          : 'hover:bg-slate-700/50 text-slate-300'
+                      }`}
+                    >
+                      Security & Privacy
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mb-1">
+                <button
+                  onClick={() => toggleSection('features')}
+                  className="w-full flex items-center justify-between p-2 rounded text-left hover:bg-slate-700/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-purple-400" />
+                    <span className="font-medium">Features</span>
+                  </div>
+                  <ChevronDown 
+                    className={`w-4 h-4 text-slate-400 transition-transform ${openSections.features ? 'rotate-180' : ''}`} 
+                  />
+                </button>
+                
+                {openSections.features && (
+                  <div className="ml-6 mt-1 space-y-1">
+                    <button
+                      onClick={() => setActiveSection('realtime')}
+                      className={`w-full text-left p-2 text-sm rounded ${
+                        activeSection === 'realtime' 
+                          ? 'bg-blue-500/20 text-blue-300' 
+                          : 'hover:bg-slate-700/50 text-slate-300'
+                      }`}
+                    >
+                      Real-time Translation
+                    </button>
+                    <button
+                      onClick={() => setActiveSection('batch')}
+                      className={`w-full text-left p-2 text-sm rounded ${
+                        activeSection === 'batch' 
+                          ? 'bg-blue-500/20 text-blue-300' 
+                          : 'hover:bg-slate-700/50 text-slate-300'
+                      }`}
+                    >
+                      Batch Processing
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              <div className="mb-1">
+                <button
+                  onClick={() => toggleSection('languages')}
+                  className="w-full flex items-center justify-between p-2 rounded text-left hover:bg-slate-700/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <Languages className="w-4 h-4 text-green-400" />
+                    <span className="font-medium">Languages</span>
+                  </div>
+                  <ChevronDown 
+                    className={`w-4 h-4 text-slate-400 transition-transform ${openSections.languages ? 'rotate-180' : ''}`} 
+                  />
+                </button>
+                
+                {openSections.languages && (
+                  <div className="ml-6 mt-1 space-y-1">
+                    {supportedLanguages.map((lang) => (
+                      <button
+                        key={lang.name}
+                        onClick={() => setActiveSection(lang.name.toLowerCase())}
+                        className={`w-full text-left p-2 text-sm rounded ${
+                          activeSection === lang.name.toLowerCase() 
+                            ? 'bg-blue-500/20 text-blue-300' 
+                            : 'hover:bg-slate-700/50 text-slate-300'
+                        }`}
+                      >
+                        {lang.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="p-4 border-t border-slate-700 mt-2">
+              <h3 className="text-sm font-medium mb-2">Need Help?</h3>
+              <div className="space-y-2">
+                <a 
+                  href="/live-support" 
+                  className="flex items-center gap-2 text-sm hover:text-blue-300 text-slate-300"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Live Chat Support</span>
+                </a>
+                <a 
+                  href="/video-tutorials" 
+                  className="flex items-center gap-2 text-sm hover:text-blue-300 text-slate-300"
+                >
+                  <Monitor className="w-4 h-4" />
+                  <span>Video Tutorials</span>
+                </a>
+              </div>
             </div>
           </div>
         </motion.nav>

@@ -71,7 +71,7 @@ export default function Navbar() {
             ))}
             
             <div className="relative group">
-              <button className="flex items-center px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/30 transition-all">
+              <button className="button flex items-center px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/30 transition-all">
                 <span>Products</span>
                 <ChevronDown className="ml-1 h-4 w-4 transition-transform group-hover:rotate-180" />
               </button>
@@ -103,7 +103,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-2">
             <button
               onClick={() => setIsDarkMode(!isDarkMode)}
-              className="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/30 transition-colors"
+              className="button p-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800/30 transition-colors"
               aria-label="Toggle dark mode"
             >
               {isDarkMode ? (
@@ -141,13 +141,13 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center space-x-2">
                 <Link
-                  href="/login"
+                  href="/auth"
                   className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800/30 transition-colors"
                 >
                   Sign In
                 </Link>
                 <Link
-                  href="/signup"
+                  href="/auth?tab=register"
                   className="px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-500 hover:to-violet-500 transition-all shadow-lg hover:shadow-blue-500/30"
                 >
                   Sign Up Free
@@ -263,13 +263,13 @@ export default function Navbar() {
               ) : (
                 <div className="space-y-2">
                   <Link
-                    href="/signup"
+                    href="/auth?tab=register"
                     className="block w-full px-4 py-3 text-center rounded-lg text-base font-medium bg-gradient-to-r from-blue-600 to-violet-600 text-white hover:from-blue-500 hover:to-violet-500 transition-all shadow-lg"
                   >
                     Sign Up Free
                   </Link>
                   <Link
-                    href="/login"
+                    href="/auth"
                     className="block w-full px-4 py-3 text-center rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/30 transition-colors"
                   >
                     Sign In

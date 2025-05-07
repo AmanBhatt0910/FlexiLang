@@ -52,7 +52,7 @@ body {
   line-height: 1.6;
 }
 
-button, .button {
+.button {
   background: var(--gradient-primary);
   color: white;
   padding: 0.75rem 1.5rem;

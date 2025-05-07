@@ -53,7 +53,7 @@ export default function FeaturesPage() {
     translate: {
       title: "Intelligent Translation",
       description: "Our translation engine goes beyond simple syntax conversion, providing context-aware transformations that preserve the intent and logic of your code.",
-      image: "/api/placeholder/680/400",
+      image: "/features/IntelligentTranslation.png",
       features: [
         "Preserves variable naming conventions",
         "Maintains code structure and organization",
