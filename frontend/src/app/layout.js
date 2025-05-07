@@ -33,6 +33,8 @@ export const metadata = {
   },
 };
 
+export const dynamicParams = true;
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} font-sans`}>

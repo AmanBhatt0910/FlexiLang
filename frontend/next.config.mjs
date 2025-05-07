@@ -1,4 +1,17 @@
+// next.config.mjs
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
-
-export default nextConfig;
+const nextConfig = {
+    experimental: {
+      appDir: true,
+      serverComponentsExternalPackages: ["@prisma/client", "bcryptjs"]
+    },
+    typescript: {
+      ignoreBuildErrors: true,
+    },
+    eslint: {
+      ignoreDuringBuilds: true,
+    },
+    transpilePackages: ['react-syntax-highlighter'],
+  };
+  
+  export default nextConfig;

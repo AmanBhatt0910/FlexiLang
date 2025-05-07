@@ -1,16 +1,20 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import AuthComponent from "@/components/AuthComponent";
+import { Suspense } from 'react';
+import AuthComponent from '@/components/AuthComponent';
 
 export default function AuthPage() {
-  const searchParams = useSearchParams();
-  const tab = searchParams.get("tab");
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
+    </div>}>
+      <AuthPageContent />
+    </Suspense>
+  );
+}
 
+function AuthPageContent() {
   return (
     <div className="pt-16 min-h-screen">
-      <AuthComponent defaultTab={tab === "register" ? "register" : "login"} />
+      <AuthComponent />
     </div>
   );
 }

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { ArrowRight, Mail, Lock, User, Github } from "lucide-react";
 
 export default function AuthComponent() {
+  const searchParams = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
   const [email, setEmail] = useState("");
@@ -13,29 +15,26 @@ export default function AuthComponent() {
   
   useEffect(() => {
     setIsLoaded(true);
-  }, []);
+    const initialTab = searchParams.get("tab");
+    setIsLogin(initialTab === "register" ? false : true);
+  }, [searchParams]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission
     console.log(isLogin ? "Logging in" : "Registering", { email, password, username });
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-gray-900 text-white overflow-hidden px-4 py-10">
-      {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-0 left-0 w-96 h-96 bg-blue-600 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-violet-600 rounded-full filter blur-3xl opacity-10 animate-pulse" style={{ animationDelay: "1s" }}></div>
         <div className="absolute top-1/2 -translate-y-1/2 left-1/3 w-64 h-64 bg-fuchsia-600 rounded-full filter blur-3xl opacity-5 animate-pulse" style={{ animationDelay: "2s" }}></div>
       </div>
 
-      {/* Subtle grid pattern overlay */}
       <div className="absolute inset-0 bg-grid-pattern opacity-5 pointer-events-none"></div>
 
-      {/* Auth Container */}
       <div className={`max-w-md w-full mx-auto z-10 relative transition-all duration-700 ease-out transform ${isLoaded ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
-        {/* Logo & Branding */}
         <div className="flex items-center justify-center mb-8">
           <div className="text-center">
             <h1 className="text-5xl font-bold tracking-tight mb-2">
@@ -47,7 +46,6 @@ export default function AuthComponent() {
         </div>
 
         <div className="bg-slate-900/80 backdrop-blur-xl p-8 rounded-2xl border border-slate-700/60 shadow-2xl shadow-blue-900/20">
-          {/* Tab Selection */}
           <div className="flex mb-8 border-b border-slate-700/60 relative">
             <button 
               onClick={() => setIsLogin(true)}
@@ -76,13 +74,11 @@ export default function AuthComponent() {
               )}
             </button>
 
-            {/* Animated Highlight */}
             <div className="absolute bottom-0 h-full w-2/3 pointer-events-none overflow-hidden">
               <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-400/20 to-violet-400/20 absolute left-10 bottom-0 filter blur-md transform-gpu animate-bounce opacity-70" style={{ animationDuration: '3s' }}></div>
             </div>
           </div>
 
-          {/* Form Fields */}
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
               <div className="space-y-2 transition-all duration-300">
