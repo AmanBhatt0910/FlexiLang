@@ -31,7 +31,7 @@ export default function PricingPage() {
   const pricingTiers = [
     {
       name: "Starter",
-      price: billingCycle === "monthly" ? "29" : "290",
+      price: billingCycle === "monthly" ? "₹1000" : "₹9000",
       description: "Perfect for individual developers & small projects",
       features: [
         "5 projects/month",
@@ -45,7 +45,7 @@ export default function PricingPage() {
     },
     {
       name: "Pro",
-      price: billingCycle === "monthly" ? "99" : "990",
+      price: billingCycle === "monthly" ? "₹4000" : "₹35000",
       description: "For professional developers & growing teams",
       features: [
         "20 projects/month",
