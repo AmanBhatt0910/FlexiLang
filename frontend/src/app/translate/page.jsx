@@ -1,4 +1,4 @@
-'use client';
+'use client'
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
@@ -14,7 +14,8 @@ import {
   Cpu,
   BookOpen,
   History,
-  Sparkles
+  Sparkles,
+  AlertTriangle
 } from 'lucide-react';
 
 const languages = [
@@ -40,6 +41,7 @@ export default function TranslatePage() {
   const [showExamples, setShowExamples] = useState(false);
   const [activeTab, setActiveTab] = useState('translate');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let interval;
@@ -59,6 +61,16 @@ export default function TranslatePage() {
     return () => clearInterval(interval);
   }, [loading]);
 
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        setError(null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
   const handleSwapLanguages = () => {
     setSourceLang(targetLang);
     setTargetLang(sourceLang);
@@ -72,12 +84,26 @@ export default function TranslatePage() {
     }
 
     try {
+      setError(null);
       setLoading(true);
+
+      const token = localStorage.getItem('token');
+      if(!token) {
+        setError('Please log in.');
+        return;
+      }
+
       const res = await axios.post('/translate', { 
-        inputCode, 
-        sourceLang, 
-        targetLang 
+        sourceCode: inputCode, 
+        fromLanguage: sourceLang, 
+        toLanguage: targetLang 
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
+      
       setOutputCode(res.data.translatedCode);
       
       const newTranslation = {
@@ -95,6 +121,31 @@ export default function TranslatePage() {
       }, 3000);
       
     } catch (err) {
+      console.error("Translation error:", err);
+      let errorMessage = "An error occurred during translation";
+      
+      if (err.response) {
+        switch (err.response.status) {
+          case 401:
+            errorMessage = "Authentication failed. Please check your API credentials.";
+            break;
+          case 404:
+            errorMessage = "API endpoint not found. Please check the service URL.";
+            break;
+          case 500:
+            errorMessage = "Server error. Please try again later.";
+            break;
+          default:
+            errorMessage = err.response.data?.message || errorMessage;
+        }
+      } else if (err.request) {
+        errorMessage = "Network error. Please check your internet connection.";
+      } else {
+        errorMessage = err.message || errorMessage;
+      }
+      
+      setError(errorMessage);
+      setOutputCode('');
     } finally {
       setLoading(false);
     }
@@ -107,6 +158,10 @@ export default function TranslatePage() {
     setTimeout(() => {
       setCopyStatus('');
     }, 2000);
+  };
+
+  const handleDismissError = () => {
+    setError(null);
   };
 
   const handleDownload = () => {
@@ -210,6 +265,33 @@ public class Factorial {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="fixed top-24 left-1/2 transform -translate-x-1/2 bg-red-500/90 text-white px-6 py-3 rounded-lg shadow-lg max-w-2xl flex items-center justify-between z-50"
+            >
+              <div className="flex items-center">
+                <AlertTriangle className="h-5 w-5 mr-2" />
+                <div>
+                  <span className="font-medium block">Error: {error}</span>
+                  <span className="text-xs mt-1 opacity-80">
+                    {error.includes('API') && 'Please check your API configuration'}
+                    {error.includes('Network') && 'Check your internet connection'}
+                  </span>
+                </div>
+              </div>
+              <button 
+                onClick={handleDismissError} 
+                className="text-white hover:text-red-200 ml-4"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </motion.div>
+          )}
+
           <div className="flex justify-center mb-6">
             <div className="inline-flex bg-slate-800/50 backdrop-blur-sm rounded-xl p-1">
               <button
@@ -316,7 +398,7 @@ public class Factorial {
                         <Code className="h-4 w-4 text-slate-400" />
                         <h3 className="text-sm font-medium text-slate-300">Source Code</h3>
                       </div>
-                      <div className="flex items-center space-x-2">
+                      <div className="flex items-center space-x-2 relative">
                         <button 
                           onClick={() => setShowExamples(!showExamples)}
                           className="text-xs text-blue-400 hover:text-blue-300 flex items-center"
@@ -440,7 +522,7 @@ public class Factorial {
                           <div className="w-full max-w-xs px-4">
                             <div className="flex items-center mb-2">
                               <Sparkles className="text-blue-400 h-5 w-5 mr-2 animate-pulse" />
-                              <p className="text-sm font-medium text-slate-300">AI is translating your code...</p>
+                              <p className="text-sm font-medium text-slate-300">Translating your code...</p>
                             </div>
                             <div className="w-full bg-slate-700 rounded-full h-2 mb-4">
                               <div 
@@ -557,7 +639,7 @@ public class Factorial {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500/90 text-white px-4 py-2 rounded-full flex items-center shadow-lg backdrop-blur-sm"
+              className="fixed top-20 left-1/2 transform -translate-x-1/2 bg-green-500/90 text-white px-4 py-2 rounded-full flex items-center shadow-lg backdrop-blur-sm z-50"
             >
               <Check className="h-4 w-4 mr-2" />
               <span className="text-sm font-medium">Translation completed successfully!</span>
