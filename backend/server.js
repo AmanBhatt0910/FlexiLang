@@ -11,14 +11,18 @@ connectDB();
 const app = express();
 
 const corsOptions = {
-  origin: process.env.CLIENT_URL,
+  origin: [
+    process.env.FRONTEND_URL,
+    'https://flexi-lang.vercel.app',
+    'http://localhost:3000'
+  ],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 };
-app.use(cors(corsOptions));
-// app.options('*', cors(corsOptions));
 app.use(express.json());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/translate', translateRoutes);
