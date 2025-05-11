@@ -5,4 +5,13 @@ const axiosInstance = axios.create({
     withCredentials: true,
 });
 
+axiosInstance.interceptors.request.use(
+    response => response,
+    error => {
+        const errorMessage = error.response?.data?.message || 'Something went wrong';
+        console.error('Request error:', errorMessage);
+        return Promise.reject(error);
+    }
+)
+
 export default axiosInstance;

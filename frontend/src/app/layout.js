@@ -1,6 +1,6 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
-import { AuthProvider } from '@/context/AuthContext';
+import AuthWrapper from '@/components/AuthWrapper';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 
@@ -39,13 +39,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable} font-sans`}>
       <body className="bg-slate-900 text-slate-100 antialiased min-h-screen flex flex-col">
-        <AuthProvider>
+        <AuthWrapper>
           <Navbar />
           <main className="flex-grow pt-32">
             {children}
           </main>
           <Footer />
-        </AuthProvider>
+        </AuthWrapper>
         
         <div id="cookie-consent"></div>
         <div id="notification-outlet"></div>

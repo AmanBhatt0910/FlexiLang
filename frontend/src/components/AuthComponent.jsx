@@ -1,27 +1,105 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
-import { ArrowRight, Mail, Lock, User, Github } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { ArrowRight, Mail, Lock, User, Github, AlertCircle } from "lucide-react";
+import useAuth from "@/hooks/useAuth";
 
 export default function AuthComponent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [formError, setFormError] = useState("");
+  
+  const { login, register, error, isAuthenticated } = useAuth();
   
   useEffect(() => {
     setIsLoaded(true);
     const initialTab = searchParams.get("tab");
     setIsLogin(initialTab === "register" ? false : true);
   }, [searchParams]);
+  
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/');
+    }
+  }, [isAuthenticated, router]);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    if (error) {
+      setFormError(error);
+    }
+  }, [error]);
+
+  const validateForm = () => {
+    setFormError("");
+    
+    if (!email.trim()) {
+      setFormError("Email is required");
+      return false;
+    }
+    
+    if (!password.trim()) {
+      setFormError("Password is required");
+      return false;
+    }
+    
+    if (!isLogin) {
+      if (!username.trim()) {
+        setFormError("Username is required");
+        return false;
+      }
+      
+      if (password !== confirmPassword) {
+        setFormError("Passwords do not match");
+        return false;
+      }
+      
+      if (password.length < 6) {
+        setFormError("Password must be at least 6 characters");
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(isLogin ? "Logging in" : "Registering", { email, password, username });
+    
+    if (!validateForm()) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      if (isLogin) {
+        const result = await login(email, password);
+        if (result.success) {
+          router.push('/');
+        }
+      } else {
+        const result = await register(username, email, password);
+        if (result.success) {
+          setFormError("");
+          setIsLogin(true);
+          setEmail("");
+          setPassword("");
+          setUsername("");
+          setConfirmPassword("");
+          alert("Registration successful! Please log in.");
+        }
+      }
+    } catch (err) {
+      console.error("Authentication error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -78,6 +156,13 @@ export default function AuthComponent() {
               <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-400/20 to-violet-400/20 absolute left-10 bottom-0 filter blur-md transform-gpu animate-bounce opacity-70" style={{ animationDuration: '3s' }}></div>
             </div>
           </div>
+
+          {formError && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-2 text-sm text-red-300">
+              <AlertCircle className="h-5 w-5 mt-0.5 flex-shrink-0" />
+              <span>{formError}</span>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && (
@@ -155,13 +240,23 @@ export default function AuthComponent() {
 
             <button
               type="submit"
-              className="group w-full inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-violet-600 text-white px-5 py-3 rounded-lg text-sm font-medium hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-700/20 hover:shadow-blue-600/30 hover:scale-[1.02] transform transition-all duration-200 mt-2"
+              disabled={isSubmitting}
+              className={`group w-full inline-flex items-center justify-center bg-gradient-to-r from-blue-600 to-violet-600 text-white px-5 py-3 rounded-lg text-sm font-medium hover:from-blue-500 hover:to-violet-500 shadow-lg shadow-blue-700/20 hover:shadow-blue-600/30 hover:scale-[1.02] transform transition-all duration-200 mt-2 ${isSubmitting ? 'opacity-75 cursor-not-allowed' : ''}`}
             >
-              <span className="relative">
-                {isLogin ? "Sign In" : "Create Account"}
-                <span className="absolute inset-x-0 -bottom-0.5 h-[2px] bg-white/30 rounded opacity-0 group-hover:opacity-100 transition-opacity"></span>
-              </span>
-              <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              {isSubmitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-2"></div>
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <span className="relative">
+                    {isLogin ? "Sign In" : "Create Account"}
+                    <span className="absolute inset-x-0 -bottom-0.5 h-[2px] bg-white/30 rounded opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                  </span>
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </button>
           </form>
 
@@ -175,6 +270,7 @@ export default function AuthComponent() {
             <button
               type="button"
               className="inline-flex items-center justify-center bg-slate-800/60 border border-slate-700/60 px-4 py-3 rounded-lg text-sm font-medium hover:bg-slate-700/60 hover:border-slate-600/60 transition-all group"
+              disabled={isSubmitting}
             >
               <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path 
@@ -200,6 +296,7 @@ export default function AuthComponent() {
             <button
               type="button"
               className="inline-flex items-center justify-center bg-slate-800/60 border border-slate-700/60 px-4 py-3 rounded-lg text-sm font-medium hover:bg-slate-700/60 hover:border-slate-600/60 transition-all group"
+              disabled={isSubmitting}
             >
               <Github className="mr-2 h-5 w-5" />
               <span className="group-hover:translate-x-0.5 transition-transform">GitHub</span>

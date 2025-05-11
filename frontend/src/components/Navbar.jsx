@@ -3,15 +3,26 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
-import { Menu, X, ChevronDown, Github, Moon, Sun } from 'lucide-react';
+import useAuth from '@/hooks/useAuth';
+import { Menu, X, ChevronDown, Github, Moon, Sun, User, Settings, LogOut } from 'lucide-react';
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user, logout } = useAuth();
   const pathname = usePathname();
+
+  useEffect(() => {
+  const handleStorageChange = () => {
+    const userData = JSON.parse(localStorage.getItem('user'));
+    setUser(userData);
+  };
+
+  window.addEventListener('storage', handleStorageChange);
+  return () => window.removeEventListener('storage', handleStorageChange);
+}, []);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -21,6 +32,7 @@ export default function Navbar() {
 
   useEffect(() => {
     setIsOpen(false);
+    setIsProfileOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -28,12 +40,28 @@ export default function Navbar() {
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
 
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      const profileMenu = document.getElementById('profile-menu');
+      if (profileMenu && !profileMenu.contains(event.target) && isProfileOpen) {
+        setIsProfileOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isProfileOpen]);
+
   const navLinks = [
     { name: 'Features', href: '/features' },
     { name: 'Pricing', href: '/pricing' },
     { name: 'Examples', href: '/examples' },
     { name: 'Docs', href: '/docs' },
   ];
+
+  const getInitial = (name) => {
+    return name ? name.charAt(0).toUpperCase() : 'U';
+  };
 
   return (
     <>
@@ -124,19 +152,57 @@ export default function Navbar() {
             </a>
             
             {user ? (
-              <div className="flex items-center space-x-2">
-                <Link
-                  href="/dashboard"
-                  className="px-4 py-2 rounded-lg text-sm font-medium bg-slate-800/50 text-white hover:bg-slate-800/70 transition-colors"
-                >
-                  Dashboard
-                </Link>
+              <div className="relative" id="profile-menu">
                 <button
-                  onClick={logout}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-red-600/20 transition-colors"
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                  className="flex items-center space-x-2 px-2 py-1.5 rounded-lg hover:bg-slate-800/50 transition-colors"
+                  aria-expanded={isProfileOpen}
+                  aria-haspopup="true"
                 >
-                  Logout
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600 shadow-md">
+                    <span className="text-white font-medium text-sm">
+                      {getInitial(user.name || user.user?.name)}
+                    </span>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${isProfileOpen ? 'rotate-180' : ''}`} />
                 </button>
+                
+                {isProfileOpen && (
+                  <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl bg-slate-900/95 backdrop-blur-lg shadow-2xl ring-1 ring-slate-800 z-10 py-1">
+                    <div className="px-4 py-3 border-b border-slate-800">
+                      <p className="text-sm font-medium text-white truncate">
+                        {user.name || user.user?.name}
+                      </p>
+                      <p className="text-xs text-slate-400 truncate">
+                        {user.email || user.user?.email}
+                      </p>
+                    </div>
+                    
+                    <div className="py-1">
+                      <Link 
+                        href="/dashboard" 
+                        className="flex items-center px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800/50 transition-colors"
+                      >
+                        <User className="h-4 w-4 mr-3" />
+                        Dashboard
+                      </Link>
+                      <Link 
+                        href="/settings" 
+                        className="flex items-center px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800/50 transition-colors"
+                      >
+                        <Settings className="h-4 w-4 mr-3" />
+                        Settings
+                      </Link>
+                      <button
+                        onClick={logout}
+                        className="flex items-center w-full text-left px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800/50 transition-colors"
+                      >
+                        <LogOut className="h-4 w-4 mr-3" />
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center space-x-2">
@@ -183,6 +249,24 @@ export default function Navbar() {
           </button>
 
           <div className="flex flex-col h-full pt-20 pb-6 px-4 overflow-y-auto">
+            {user && (
+              <div className="flex items-center space-x-3 px-4 py-3 mb-6 bg-slate-800/30 rounded-xl">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-violet-600 shadow-md">
+                  <span className="text-white font-medium text-sm">
+                    {getInitial(user.name || user.user?.name)}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {user.name || user.user?.name}
+                  </p>
+                  <p className="text-xs text-slate-400 truncate">
+                    {user.email || user.user?.email}
+                  </p>
+                </div>
+              </div>
+            )}
+            
             <div className="flex-1 space-y-2">
               {navLinks.map((link) => (
                 <Link 
@@ -212,6 +296,31 @@ export default function Navbar() {
                   Code {product.charAt(0).toUpperCase() + product.slice(1)}
                 </Link>
               ))}
+              
+              {user && (
+                <>
+                  <div className="py-2">
+                    <div className="border-t border-slate-800 my-3"></div>
+                    <p className="px-4 py-2 text-sm text-slate-500 font-medium">Account</p>
+                  </div>
+                  
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center px-4 py-3 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/30 transition-colors"
+                  >
+                    <User className="h-5 w-5 mr-3" />
+                    Dashboard
+                  </Link>
+                  
+                  <Link
+                    href="/settings"
+                    className="flex items-center px-4 py-3 rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-slate-800/30 transition-colors"
+                  >
+                    <Settings className="h-5 w-5 mr-3" />
+                    Settings
+                  </Link>
+                </>
+              )}
             </div>
             
             <div className="space-y-4 pt-6 border-t border-slate-800">
@@ -246,20 +355,13 @@ export default function Navbar() {
               </div>
               
               {user ? (
-                <div className="space-y-2">
-                  <Link
-                    href="/dashboard"
-                    className="block w-full px-4 py-3 text-center rounded-lg text-base font-medium bg-slate-800/50 text-white hover:bg-slate-800/70 transition-colors"
-                  >
-                    Dashboard
-                  </Link>
-                  <button
-                    onClick={logout}
-                    className="block w-full px-4 py-3 text-center rounded-lg text-base font-medium text-slate-300 hover:text-white hover:bg-red-600/20 transition-colors"
-                  >
-                    Logout
-                  </button>
-                </div>
+                <button
+                  onClick={logout}
+                  className="flex items-center justify-center w-full px-4 py-3 rounded-lg text-base font-medium bg-slate-800/50 text-white hover:bg-red-600/20 transition-colors"
+                >
+                  <LogOut className="h-5 w-5 mr-2" />
+                  Sign out
+                </button>
               ) : (
                 <div className="space-y-2">
                   <Link
