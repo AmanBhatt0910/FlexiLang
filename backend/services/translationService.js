@@ -1,31 +1,23 @@
-import { jsToJava, jsToC, jsToPython, pythonToJs, pythonToJava, pythonToC, javaToC, javaToPython, cToJava, cToPython, cToJS } from './codeTranslators/index.js';
+import { CrossCompiler } from './compiler/compiler.js';
+
+const compiler = new CrossCompiler();
+
+const sanitizeCode = (code) => code.replace(/[^\x20-\x7E]/g, '');
 
 export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
-  const translationKey = `${fromLanguage}To${capitalize(toLanguage)}`;
-  console.log(translationKey);
+  const sanitizedCode = sanitizeCode(sourceCode);
   
-  const translators = {
-    javascriptToJava: jsToJava,
-    javascriptToC: jsToC,
-    javascriptToPython: jsToPython,
-    pythonToJavascript: pythonToJs,
-    pythonToJava: pythonToJava,
-    pythonToC: pythonToC,
-    javaToC: javaToC,
-    javaToPython: javaToPython,
-    javascriptToJava: jsToJava,
-    cToJava: cToJava,
-    cToPython: cToPython,
-    cToJavascript: cToJS
-  };
-
-  const translator = translators[translationKey];
-  
-  if (!translator) {
-    throw new Error(`Translation from ${fromLanguage} to ${toLanguage} is not supported`);
+  if (!sanitizedCode.trim()) {
+    throw new Error("Empty code after sanitization");
   }
+
+  const result = compiler.compile(sanitizedCode, fromLanguage, toLanguage);
   
-  return translator(sourceCode);
+  if (!result.success || !result.targetCode) {
+    throw new Error(result.error || "Unknown compilation error");
+  }
+
+  return result.targetCode;
 };
 
-const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+export const getSupportedLanguages = () => compiler.getSupportedLanguages();
