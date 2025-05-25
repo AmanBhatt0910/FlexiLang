@@ -22,11 +22,7 @@ const languages = [
   { id: 'javascript', name: 'JavaScript', icon: 'devicon-javascript-plain colored', description: 'ES6+ syntax' },
   { id: 'python', name: 'Python', icon: 'devicon-python-plain colored', description: 'Python 3.x' },
   { id: 'java', name: 'Java', icon: 'devicon-java-plain colored', description: 'Java 11+' },
-  { id: 'cpp', name: 'C++', icon: 'devicon-cplusplus-plain colored', description: 'C++17' },
-  { id: 'typescript', name: 'TypeScript', icon: 'devicon-typescript-plain colored', description: 'TS 4.x' },
-  { id: 'go', name: 'Go', icon: 'devicon-go-plain colored', description: 'Go 1.16+' },
-  { id: 'rust', name: 'Rust', icon: 'devicon-rust-plain colored', description: 'Rust 2021' },
-  { id: 'csharp', name: 'C#', icon: 'devicon-csharp-plain colored', description: '.NET 6+' },
+  { id: 'c', name: 'C', icon: 'devicon-c-plain colored', description: 'C99/C11' },
 ];
 
 export default function TranslatePage() {
@@ -168,11 +164,7 @@ export default function TranslatePage() {
     const extension = targetLang === 'javascript' ? 'js' : 
                      targetLang === 'python' ? 'py' :
                      targetLang === 'java' ? 'java' :
-                     targetLang === 'cpp' ? 'cpp' :
-                     targetLang === 'typescript' ? 'ts' :
-                     targetLang === 'go' ? 'go' :
-                     targetLang === 'rust' ? 'rs' :
-                     targetLang === 'csharp' ? 'cs' : 'txt';
+                     targetLang === 'c' ? 'c' : 'txt';
                      
     const fileName = `translated-code.${extension}`;
     const blob = new Blob([outputCode], { type: 'text/plain' });
