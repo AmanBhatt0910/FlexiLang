@@ -38,3 +38,6 @@ export const TokenTypes = {
   EOF: 'EOF',
   WHITESPACE: 'WHITESPACE'
 };
+
+// Also export as default for better compatibility
+export default TokenTypes;

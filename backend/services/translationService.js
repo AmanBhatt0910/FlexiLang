@@ -1,12 +1,19 @@
 import { CrossCompiler } from './compiler/compiler.js';
-import { TokenTypes } from './compiler/TokenConstants.js';
+import TokenTypes from './compiler/TokenConstants.js';
+
+// Defensive check for TokenTypes
+if (!TokenTypes || typeof TokenTypes !== 'object') {
+  console.error('CRITICAL: TokenTypes failed to load properly');
+  console.error('TokenTypes value:', TokenTypes);
+  console.error('TokenTypes type:', typeof TokenTypes);
+}
 
 // Initialize compiler with safety checks
 const compiler = (() => {
   try {
     // Verify critical dependencies before compiler creation
     if (!TokenTypes || typeof TokenTypes !== 'object') {
-      throw new Error('Failed to load TokenTypes');
+      throw new Error(`Failed to load TokenTypes. Got: ${typeof TokenTypes}`);
     }
     
     if (!CrossCompiler) {
@@ -16,14 +23,22 @@ const compiler = (() => {
     const instance = new CrossCompiler();
     
     // Verify compiler initialization
-    if (!instance.isConversionSupported || !instance.compile) {
+    if (!instance.compile) {
       throw new Error('Compiler methods not properly initialized');
     }
     
+    console.log('Compiler initialized successfully');
     return instance;
   } catch (error) {
-    console.error('COMPILER INITIALIZATION FAILED:', error);
-    process.exit(1); // Critical failure, exit process
+    console.error('COMPILER INITIALIZATION FAILED:', error.message);
+    console.error('Available imports:', {
+      CrossCompiler: typeof CrossCompiler,
+      TokenTypes: typeof TokenTypes,
+      TokenTypesKeys: TokenTypes ? Object.keys(TokenTypes) : 'N/A'
+    });
+    
+    // Don't exit in production, return null instead
+    return null;
   }
 })();
 
@@ -38,6 +53,11 @@ const sanitizeCode = (code) => {
 
 export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
   try {
+    // Check if compiler is available
+    if (!compiler) {
+      throw new Error('Compiler not initialized - check server logs for details');
+    }
+
     // Validate input types
     if (typeof sourceCode !== 'string' || 
         typeof fromLanguage !== 'string' || 
@@ -82,7 +102,9 @@ export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
         from: fromLanguage,
         to: toLanguage,
         codePreview: sourceCode?.slice(0, 50)
-      }
+      },
+      compilerStatus: compiler ? 'available' : 'not available',
+      tokenTypesStatus: TokenTypes ? 'loaded' : 'not loaded'
     });
     throw new Error(`Translation failed: ${error.message}`);
   }
@@ -90,6 +112,9 @@ export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
 
 export const getSupportedLanguages = () => {
   try {
+    if (!compiler) {
+      return { error: 'Compiler not initialized' };
+    }
     return compiler.getSupportedLanguages() || {};
   } catch (error) {
     console.error('Language Support Check Failed:', error);
