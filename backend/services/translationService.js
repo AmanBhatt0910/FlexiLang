@@ -1,11 +1,37 @@
 import { CrossCompiler } from './compiler/compiler.js';
-import { TokenTypes } from './compiler/tokenTypes.js'; // Add this import
+import { TokenTypes } from './compiler/tokenTypes.js';
 import { validateLexerDependencies } from './compiler/Lexer.js';
+import { ASTNode, NodeTypes } from './compiler/ast.js';
 
+if (!global.NodeTypes) global.NodeTypes = NodeTypes;
 // Enhanced dependency validation
 const validateDependencies = () => {
   const issues = [];
+
+  if (!ASTNode?.prototype?.addChild) {
+    issues.push('ASTNode prototype corrupted');
+  }
   
+  if (!NodeTypes?.PROGRAM) {
+    issues.push('NodeTypes missing critical PROGRAM type');
+  }
+
+  console.log('AST NodeTypes:', NodeTypes);
+  console.log('ASTNode prototype:', ASTNode?.prototype ? 'Valid' : 'Invalid');
+
+  if (!ASTNode || typeof ASTNode !== 'function') {
+    issues.push('ASTNode class not loaded');
+  }
+  
+  if (!NodeTypes || typeof NodeTypes !== 'object') {
+    issues.push('NodeTypes not loaded');
+  } else {
+    const requiredTypes = ['PROGRAM', 'VARIABLE_DECLARATION', 'CALL_EXPRESSION'];
+    requiredTypes.forEach(type => {
+      if (!NodeTypes[type]) issues.push(`Missing NodeType: ${type}`);
+    });
+  }
+
   // Check TokenTypes
   if (!TokenTypes || typeof TokenTypes !== 'object') {
     issues.push(`TokenTypes failed to load. Got: ${typeof TokenTypes}`);
@@ -108,6 +134,11 @@ const sanitizeCode = (code) => {
 
 export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
   const startTime = Date.now();
+
+  console.log('Available NodeTypes:', Object.keys(NodeTypes).length, 'types');
+  if (!NodeTypes.VARIABLE_DECLARATION) {
+    throw new Error('Critical NodeTypes missing in compilation context');
+  }
   
   try {
     // Pre-flight checks

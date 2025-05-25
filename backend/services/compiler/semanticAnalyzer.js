@@ -1,3 +1,5 @@
+import { TokenTypes } from './tokenTypes.js';
+
 export class SemanticAnalyzer {
   constructor(ast) {
     this.ast = ast;

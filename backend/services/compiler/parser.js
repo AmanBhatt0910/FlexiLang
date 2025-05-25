@@ -1,10 +1,15 @@
-import { NodeTypes } from './ast.js';
+import { TokenTypes } from './tokenTypes.js';
+import { ASTNode, NodeTypes } from './tokenTypes.js';
 
 export class SyntaxAnalyzer {
   constructor(tokens) {
-    this.tokens = tokens.filter(t => t.type !== TokenTypes.WHITESPACE && t.type !== TokenTypes.COMMENT);
+    if (!NodeTypes) {
+      throw new Error('NodeTypes dependency not loaded');
+    }
+     this.tokens = tokens.filter(t => t.type !== TokenTypes.WHITESPACE && t.type !== TokenTypes.COMMENT);
     this.position = 0;
     this.currentToken = this.tokens[0];
+    this.NodeTypes = NodeTypes;
   }
   
   getCurrentToken() {
@@ -39,7 +44,7 @@ export class SyntaxAnalyzer {
   }
   
   parse() {
-    const program = new ASTNode(NodeTypes.PROGRAM);
+    const program = new ASTNode(this.NodeTypes.PROGRAM);
     
     while (this.currentToken && this.currentToken.type !== TokenTypes.EOF) {
       if (this.match(TokenTypes.NEWLINE)) {

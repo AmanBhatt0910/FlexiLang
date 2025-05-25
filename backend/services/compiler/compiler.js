@@ -8,13 +8,12 @@ import { PythonCodeGenerator } from './generators/pythonGenerator.js';
 import { JavaCodeGenerator } from './generators/javaGenerator.js';
 import { CGenerator } from './generators/CGenerator.js';
 import { JavaScriptGenerator } from './generators/javascriptGenerator.js';
+import { ASTNode, NodeTypes } from './ast.js';
 
 export class CrossCompiler {
   constructor() {
+    if (!NodeTypes) throw new Error('NodeTypes dependency missing');
     console.log('Compiler TokenTypes:', TokenTypes);
-    if (!TokenTypes) {
-      throw new Error('TokenTypes not loaded');
-    }
     
     this.supportedLanguages = {
       javascript: ['python', 'java', 'c'],
@@ -25,7 +24,7 @@ export class CrossCompiler {
   }
 
   compile(sourceCode, fromLang, toLang) {
-    console.log('Compilation using TokenTypes:', TokenTypes);
+    console.log('Compilation using NodeTypes:', NodeTypes);
     if (!this.isConversionSupported(fromLang, toLang)) {
       return {
         success: false,
