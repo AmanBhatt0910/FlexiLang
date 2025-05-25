@@ -11,6 +11,12 @@ export const translateCode = async (req, res) => {
 
   try {
     const translatedCode = performTranslation(sourceCode, fromLanguage, toLanguage);
+
+    if(fromLanguage == toLanguage) {
+      return res.status(500).json({
+        message: "From and To Language are same"
+      })
+    }
     
     return res.status(200).json({ 
       translatedCode,
