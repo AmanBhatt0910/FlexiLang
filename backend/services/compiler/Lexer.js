@@ -1,4 +1,4 @@
-import { TokenTypes } from "./TokenConstants.js";
+import { TokenTypes } from './TokenConstants.js';
 
 export class Token {
   constructor(type, value, line = 0, column = 0) {
@@ -11,6 +11,7 @@ export class Token {
 
 export class LexicalAnalyzer {
   constructor(sourceCode) {
+    console.log('Lexer initialized with TokenTypes:', TokenTypes);
     this.source = sourceCode;
     this.position = 0;
     this.line = 1;

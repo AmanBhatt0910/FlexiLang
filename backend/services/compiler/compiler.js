@@ -1,5 +1,5 @@
 import { TokenTypes } from './TokenConstants.js';
-import { LexicalAnalyzer } from './lexer.js';
+import { LexicalAnalyzer } from './Lexer.js';
 import { SyntaxAnalyzer } from './parser.js';
 import { SemanticAnalyzer } from './semanticAnalyzer.js';
 import { IntermediateCodeGenerator } from './intermediateCodeGenerator.js';
@@ -11,6 +11,7 @@ import { JavaScriptGenerator } from './generators/javascriptGenerator.js';
 
 export class CrossCompiler {
   constructor() {
+    console.log('Compiler TokenTypes:', TokenTypes);
     if (!TokenTypes) {
       throw new Error('TokenTypes not loaded');
     }
@@ -24,6 +25,7 @@ export class CrossCompiler {
   }
 
   compile(sourceCode, fromLang, toLang) {
+    console.log('Compilation using TokenTypes:', TokenTypes);
     if (!this.isConversionSupported(fromLang, toLang)) {
       return {
         success: false,
