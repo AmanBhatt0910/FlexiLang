@@ -5,7 +5,7 @@ import { IntermediateCodeGenerator } from './intermediateCodeGenerator.js';
 import { CodeOptimizer } from './optimizer.js';
 import { PythonCodeGenerator } from './generators/pythonGenerator.js';
 import { JavaCodeGenerator } from './generators/javaGenerator.js';
-import { CCodeGenerator } from './generators/cGenerator.js';
+import { CGenerator  } from './generators/CGenerator.js';
 import { JavaScriptGenerator } from './generators/javascriptGenerator.js';
 
 export class CrossCompiler {
@@ -64,7 +64,7 @@ export class CrossCompiler {
           targetCode = new JavaCodeGenerator(optimizedCode).generate();
           break;
         case 'c':
-          targetCode = new CCodeGenerator(optimizedCode).generate();
+          targetCode = new CGenerator(optimizedCode).generate();
           break;
         case 'javascript':
           targetCode = new JavaScriptGenerator(optimizedCode).generate();
