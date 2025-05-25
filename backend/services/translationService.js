@@ -1,5 +1,5 @@
 import { CrossCompiler } from './compiler/compiler.js';
-import { TokenTypes } from './compiler/Constants.js';
+import { TokenTypes } from './compiler/TokenConstants.js';
 
 // Initialize compiler with safety checks
 const compiler = (() => {
