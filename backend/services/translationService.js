@@ -12,7 +12,7 @@ export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
     pythonToJava: pythonToJava,
     pythonToC: pythonToC,
     javaToC: javaToC,
-    javaToPythob: javaToPython,
+    javaToPython: javaToPython,
     javascriptToJava: jsToJava,
     cToJava: cToJava,
     cToPython: cToPython,
