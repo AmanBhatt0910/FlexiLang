@@ -5,8 +5,7 @@ import { IntermediateCodeGenerator } from './intermediateCodeGenerator.js';
 import { CodeOptimizer } from './optimizer.js';
 import { PythonCodeGenerator } from './generators/pythonGenerator.js';
 import { JavaCodeGenerator } from './generators/javaGenerator.js';
-// import { CGenerator  } from './generators/CGenerator.js';
-import CGenerator from './generators/cGenerator.js';
+import { CGenerator } from './generators/cGenerator.js';
 import { JavaScriptGenerator } from './generators/javascriptGenerator.js';
 
 export class CrossCompiler {

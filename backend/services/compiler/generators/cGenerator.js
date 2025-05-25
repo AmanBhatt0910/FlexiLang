@@ -1,4 +1,4 @@
-export class CGenerator  {
+export class CGenerator {
   constructor(instructions) {
     this.instructions = instructions;
     this.code = [];
