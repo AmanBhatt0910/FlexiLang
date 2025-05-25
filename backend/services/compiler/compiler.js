@@ -1,5 +1,5 @@
 import { TokenTypes } from './Constants.js';
-import { LexicalAnalyzer } from './lexer.js';
+import { LexicalAnalyzer } from './Lexer.js';
 import { SyntaxAnalyzer } from './parser.js';
 import { SemanticAnalyzer } from './semanticAnalyzer.js';
 import { IntermediateCodeGenerator } from './intermediateCodeGenerator.js';
