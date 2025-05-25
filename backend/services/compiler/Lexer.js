@@ -1,4 +1,4 @@
-import { TokenTypes } from './TokenConstants.js';
+import { TokenTypes } from './tokenTypes.js';
 
 export class Token {
   constructor(type, value, line = 0, column = 0) {

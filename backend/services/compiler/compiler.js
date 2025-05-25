@@ -1,4 +1,4 @@
-import { TokenTypes } from './TokenConstants.js';
+import { TokenTypes } from './tokenTypes.js';
 import { LexicalAnalyzer } from './Lexer.js';
 import { SyntaxAnalyzer } from './parser.js';
 import { SemanticAnalyzer } from './semanticAnalyzer.js';

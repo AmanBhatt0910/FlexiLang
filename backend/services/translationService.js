@@ -1,5 +1,5 @@
 import { CrossCompiler } from './compiler/compiler.js';
-import { TokenTypes } from './compiler/TokenConstants.js';
+import { TokenTypes } from './compiler/tokenTypes.js';
 import { validateLexerDependencies } from './compiler/Lexer.js';
 
 // Enhanced dependency validation
@@ -165,6 +165,7 @@ export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
       throw new Error("Compiler returned null result");
     }
     
+    console.log('TokenTypes before use:', typeof TokenTypes, TokenTypes);
     if (!result.success) {
       throw new Error(result.error || "Compilation failed without specific error message");
     }
