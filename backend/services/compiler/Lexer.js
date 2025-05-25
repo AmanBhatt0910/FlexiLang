@@ -11,6 +11,11 @@ export class Token {
 
 export class LexicalAnalyzer {
   constructor(sourceCode) {
+    // Validate TokenTypes at runtime when the class is instantiated
+    if (!TokenTypes || typeof TokenTypes !== 'object') {
+      throw new Error('TokenTypes not properly loaded or initialized');
+    }
+    
     console.log('Lexer initialized with TokenTypes:', TokenTypes);
     this.source = sourceCode;
     this.position = 0;
@@ -249,6 +254,7 @@ export class LexicalAnalyzer {
           break;
         default:
           // Unknown character - could throw error or ignore
+          console.warn(`Unknown character encountered: '${char}' at line ${this.line}, column ${this.column}`);
           break;
       }
       
@@ -258,12 +264,32 @@ export class LexicalAnalyzer {
     this.tokens.push(new Token(TokenTypes.EOF, null, this.line, this.column));
     return this.tokens;
   }
+  
+  // Static method to validate module loading
+  static validateDependencies() {
+    if (!TokenTypes || typeof TokenTypes !== 'object') {
+      throw new Error('TokenTypes not properly loaded - check TokenConstants.js');
+    }
+    
+    const requiredTokens = [
+      'NUMBER', 'STRING', 'BOOLEAN', 'NULL', 'UNDEFINED', 'IDENTIFIER', 
+      'KEYWORD', 'ASSIGNMENT', 'ARITHMETIC', 'COMPARISON', 'LOGICAL', 
+      'UNARY', 'SEMICOLON', 'COMMA', 'DOT', 'LPAREN', 'RPAREN', 
+      'LBRACE', 'RBRACE', 'LBRACKET', 'RBRACKET', 'COMMENT', 
+      'NEWLINE', 'EOF', 'WHITESPACE'
+    ];
+    
+    for (const token of requiredTokens) {
+      if (!TokenTypes[token]) {
+        throw new Error(`Missing required TokenType: ${token}`);
+      }
+    }
+    
+    return true;
+  }
 }
 
-if (!TokenTypes) {
-  throw new Error('TokenTypes not initialized');
-}
-
-if (!LexicalAnalyzer) {
-  throw new Error('LexicalAnalyzer not initialized');
-}
+// Export a validation function that can be called after module loading
+export const validateLexerDependencies = () => {
+  return LexicalAnalyzer.validateDependencies();
+};
