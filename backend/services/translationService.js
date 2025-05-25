@@ -1,4 +1,4 @@
-import { javaToJs, jsToPython, pythonToJs } from './codeTranslators/index.js';
+import { jsToPython, pythonToJs, jsToJava, javaToC, cToJava } from './codeTranslators/index.js';
 
 export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
   const translationKey = `${fromLanguage}To${capitalize(toLanguage)}`;
@@ -7,7 +7,9 @@ export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
   const translators = {
     javascriptToPython: jsToPython,
     pythonToJavascript: pythonToJs,
-    javaToJavascript: javaToJs,
+    javascriptToJava: jsToJava,
+    javaToC: javaToC,
+    cToJava: cToJava
   };
 
   const translator = translators[translationKey];
