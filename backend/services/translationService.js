@@ -1,5 +1,5 @@
 import { CrossCompiler } from './compiler/compiler.js';
-import TokenTypes from './compiler/TokenConstants.js';
+import { TokenTypes } from './compiler/TokenConstants.js';
 
 // Defensive check for TokenTypes
 if (!TokenTypes || typeof TokenTypes !== 'object') {
