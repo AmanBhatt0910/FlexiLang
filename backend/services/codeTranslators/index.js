@@ -9,7 +9,6 @@ export { pythonToJava } from './pythonToJava.js';
 export { pythonToC } from './pythonToC.js';
 
 // Java
-export { javaToJS } from './javaToJS.js';
 export { javaToPython } from './javaToPython.js';
 export { javaToC } from './javaToC.js';
 
