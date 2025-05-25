@@ -297,3 +297,11 @@ export class LexicalAnalyzer {
     return this.tokens;
   }
 }
+
+if (!TokenTypes) {
+  throw new Error('TokenTypes not initialized');
+}
+
+if (!LexicalAnalyzer) {
+  throw new Error('LexicalAnalyzer not initialized');
+}

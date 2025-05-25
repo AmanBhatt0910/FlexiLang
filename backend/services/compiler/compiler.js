@@ -1,4 +1,4 @@
-import { LexicalAnalyzer } from './lexer.js';
+import { LexicalAnalyzer, TokenTypes } from './lexer.js';
 import { SyntaxAnalyzer } from './parser.js';
 import { SemanticAnalyzer } from './semanticAnalyzer.js';
 import { IntermediateCodeGenerator } from './intermediateCodeGenerator.js';
@@ -10,6 +10,10 @@ import { JavaScriptGenerator } from './generators/javascriptGenerator.js';
 
 export class CrossCompiler {
   constructor() {
+    if (!TokenTypes) {
+      throw new Error('TokenTypes not loaded');
+    }
+    
     this.supportedLanguages = {
       javascript: ['python', 'java', 'c'],
       python: ['javascript', 'java', 'c'],
