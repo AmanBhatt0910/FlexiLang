@@ -1,5 +1,4 @@
 import { CrossCompiler } from './compiler/compiler.js';
-import { TokenTypes } from './compiler/lexer.js';
 import { TokenTypes } from './compiler/constants.js';
 
 // Initialize compiler with safety checks
