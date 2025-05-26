@@ -1,4 +1,4 @@
-export class JavaScriptGenerator {
+export class JavaSGenerator {
   constructor(intermediateCode) {
     console.log('=== JavaScriptCodeGenerator Constructor ===');
     console.log('Intermediate Code:', intermediateCode);

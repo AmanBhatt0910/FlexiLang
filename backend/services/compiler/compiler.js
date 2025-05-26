@@ -7,7 +7,7 @@ import { CodeOptimizer } from './optimizer.js';
 import { PythonCodeGenerator } from './generators/pythonGenerator.js';
 import { JavaCodeGenerator } from './generators/javaGenerator.js';
 import { CGenerator } from './generators/CGenerator.js';
-import { JavaScriptGenerator } from './generators/javascriptGenerator.js';
+import { JavaSGenerator } from './generators/javasGenerator.js';
 import { ASTNode, NodeTypes } from './ast.js';
 
 export class CrossCompiler {
