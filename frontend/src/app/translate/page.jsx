@@ -38,6 +38,9 @@ export default function TranslatePage() {
   const [activeTab, setActiveTab] = useState('translate');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [error, setError] = useState(null);
+  const [translationStats, setTranslationStats] = useState(null);
+  const [translationWarnings, setTranslationWarnings] = useState([]);
+  const [translationMetadata, setTranslationMetadata] = useState(null);
 
   useEffect(() => {
     let interval;
@@ -82,6 +85,9 @@ export default function TranslatePage() {
     try {
       setError(null);
       setLoading(true);
+      setTranslationWarnings([]);
+      setTranslationStats(null);
+      setTranslationMetadata(null);
 
       const token = localStorage.getItem('token');
       if(!token) {
@@ -100,13 +106,20 @@ export default function TranslatePage() {
         }
       });
       
-      setOutputCode(res.data.translatedCode);
+      const { translatedCode, fromLanguage, toLanguage } = res.data;
+    
+      setOutputCode(translatedCode.code);
+      setTranslationWarnings(translatedCode.warnings || []);
+      setTranslationStats(translatedCode.stats || null);
+      setTranslationMetadata(translatedCode.metadata || null);
       
       const newTranslation = {
         id: Date.now(),
-        sourceLang,
-        targetLang,
-        snippet: inputCode.substring(0, 30) + (inputCode.length > 30 ? '...' : '')
+        sourceLang: fromLanguage,
+        targetLang: toLanguage,
+        snippet: inputCode.substring(0, 30) + (inputCode.length > 30 ? '...' : ''),
+        hasWarnings: translatedCode.warnings && translatedCode.warnings.length > 0,
+        stats: translatedCode.stats
       };
       
       setRecentTranslations(prev => [newTranslation, ...prev.slice(0, 4)]);
@@ -142,6 +155,9 @@ export default function TranslatePage() {
       
       setError(errorMessage);
       setOutputCode('');
+      setTranslationWarnings([]);
+      setTranslationStats(null);
+      setTranslationMetadata(null);
     } finally {
       setLoading(false);
     }
@@ -454,8 +470,32 @@ public class Factorial {
                       <div className="flex items-center space-x-2">
                         <Cpu className="h-4 w-4 text-slate-400" />
                         <h3 className="text-sm font-medium text-slate-300">Translated Code</h3>
-                      </div>
+                      {translationWarnings.length > 0 && (
+                        <div className="mb-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                          <div className="flex items-start">
+                            <AlertTriangle className="h-4 w-4 text-yellow-400 mt-0.5 mr-2 flex-shrink-0" />
+                            <div>
+                              <h4 className="text-sm font-medium text-yellow-300 mb-1">Translation Warnings</h4>
+                              <ul className="text-xs text-yellow-200 space-y-1">
+                                {translationWarnings.map((warning, index) => (
+                                  <li key={index} className="flex items-start">
+                                    <span className="inline-block w-1 h-1 bg-yellow-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
+                                    {warning}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                  </div>
                       <div className="flex items-center space-x-2">
+                        {translationStats && (
+                          <div className="text-xs text-slate-400 mr-2">
+                            <span>{translationStats.processingTime}ms • </span>
+                            <span>{translationStats.tokensGenerated} tokens</span>
+                          </div>
+                        )}
                         <button
                           onClick={handleCopyCode}
                           className={`p-1 rounded hover:bg-slate-700 ${copyStatus === 'copied' ? 'text-green-400' : 'text-slate-400'}`}
@@ -486,28 +526,28 @@ public class Factorial {
                     
                     <div className="border border-slate-700 rounded-lg overflow-hidden bg-slate-900 relative text-black">
                     <CodeEditor
-                        code={outputCode}
-                        setCode={() => {}}
-                        language={targetLang}
-                        placeholder="Translated code will appear here..."
-                        readOnly={true}
-                        className="min-h-[400px] font-mono text-sm"
-                        showLineNumbers={true}
-                        lineNumberStyle={{
-                          color: '#64748b',
-                          padding: '0 1rem 0 0',
-                          minWidth: '3em',
-                          textAlign: 'right',
-                          userSelect: 'none'
-                        }}
-                        theme={{
-                          background: '#0f172a',
-                          text: '#ffffff',
-                          selection: '#334155',
-                          gutterBackground: '#0f172a',
-                          gutterBorderRight: '1px solid #1e293b'
-                        }}
-                      />
+                      code={outputCode}
+                      setCode={() => {}}
+                      language={targetLang}
+                      placeholder="Translated code will appear here..."
+                      readOnly={true}
+                      className="min-h-[400px] font-mono text-sm"
+                      showLineNumbers={true}
+                      lineNumberStyle={{
+                        color: '#64748b',
+                        padding: '0 1rem 0 0',
+                        minWidth: '3em',
+                        textAlign: 'right',
+                        userSelect: 'none'
+                      }}
+                      theme={{
+                        background: '#0f172a',
+                        text: '#ffffff',
+                        selection: '#334155',
+                        gutterBackground: '#0f172a',
+                        gutterBorderRight: '1px solid #1e293b'
+                      }}
+                    />
                       
                       {loading && (
                         <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center">
@@ -527,8 +567,38 @@ public class Factorial {
                         </div>
                       )}
                     </div>
+
+                    {(translationStats || translationMetadata) && outputCode && (
+                      <div className="mt-3 p-3 bg-slate-700/30 rounded-lg border border-slate-600/50">
+                        <div className="flex items-center justify-between text-xs text-slate-400">
+                          <div className="flex items-center space-x-4">
+                            {translationStats && (
+                              <>
+                                <span>Processing: {translationStats.processingTime}ms</span>
+                                <span>Size: {translationStats.sourceLength} → {translationStats.targetLength} chars</span>
+                                <span>Tokens: {translationStats.tokensGenerated}</span>
+                              </>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            {translationMetadata && (
+                              <>
+                                {translationMetadata.hasAST && (
+                                  <span className="px-2 py-1 bg-green-500/20 text-green-300 rounded text-xs">AST</span>
+                                )}
+                                {translationMetadata.hasSymbolTable && (
+                                  <span className="px-2 py-1 bg-blue-500/20 text-blue-300 rounded text-xs">Symbols</span>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                
                 
                 <div className="flex items-center justify-center p-4 border-t border-slate-700 bg-slate-800">
                   <button
@@ -563,6 +633,8 @@ public class Factorial {
               </div>
             )}
             
+            {/* ... (keep previous code unchanged) */}
+
             {activeTab === 'history' && (
               <div className="p-6">
                 <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
@@ -579,10 +651,24 @@ public class Factorial {
                             <span>{item.sourceLang}</span>
                             <ArrowRightLeft className="mx-2 h-4 w-4 text-slate-400" />
                             <span>{item.targetLang}</span>
+                            {item.hasWarnings && (
+                              <AlertTriangle className="ml-2 h-3 w-3 text-yellow-400" />
+                            )}
                           </div>
-                          <span className="text-xs text-slate-400">
-                            {new Date(item.id).toLocaleTimeString()}
-                          </span>
+                          <div className="flex items-center space-x-2 text-xs text-slate-400">
+                            {item.stats && (
+                              <>
+                                <div className="flex items-center">
+                                  <Clock className="h-3 w-3 mr-1" />
+                                  <span>{item.stats.processingTime}ms</span>
+                                </div>
+                                <div className="flex items-center">
+                                  <FileText className="h-3 w-3 mr-1" />
+                                  <span>{item.stats.sourceLength}→{item.stats.targetLength} chars</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
                         </div>
                         <p className="mt-2 text-sm text-slate-400 truncate">{item.snippet}</p>
                       </div>
@@ -596,7 +682,7 @@ public class Factorial {
                 )}
               </div>
             )}
-            
+
             {activeTab === 'examples' && (
               <div className="p-6">
                 <h3 className="text-xl font-semibold text-white mb-4 flex items-center">
