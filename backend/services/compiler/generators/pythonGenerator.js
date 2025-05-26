@@ -126,22 +126,18 @@ export class PythonCodeGenerator {
   }
 
   handleMemberGet(instr) {
-    if (!instr.arg1 || !instr.arg2 || !instr.result) return;
-
+    // Directly map console.log to Python print
     if (instr.arg1 === 'console' && instr.arg2 === 'log') {
-      this.consoleLogVars.add(instr.result);
-      this.code.push(`${this.indent()}${instr.result} = print`); // Directly map to print
-    } else {
-      this.code.push(`${this.indent()}${instr.result} = ${instr.arg1}.${instr.arg2}`);
+      this.code.push(`${this.indent()}${instr.result} = print`);
+      return;
     }
+    this.code.push(`${this.indent()}${instr.result} = ${instr.arg1}.${instr.arg2}`);
   }
 
   handleCall(instr) {
-    if (!instr.arg1) return;
-
-    const args = (instr.params || []).map(p => {
-      const value = this.varMap.get(p);
-      return typeof value === 'string' ? `"${value}"` : value || p;
+    const args = (instr.params || []).map(param => {
+      const value = this.varMap.get(param);
+      return typeof value === 'string' ? `"${value}"` : value;
     }).join(', ');
 
     if (instr.arg1 === 'print') {
@@ -152,23 +148,11 @@ export class PythonCodeGenerator {
   }
 
   handleLoadConst(instr) {
-    // Add safety checks
-    if (!instr.result) {
-      console.warn('Invalid LOAD_CONST instruction:', instr);
-      return;
-    }
-
-    const value = instr.arg1;
-    this.varMap.set(instr.result, value);
-    
-    if (typeof value === 'string') {
-      this.code.push(`${this.indent()}${instr.result} = "${value}"`);
-    } else if (value === null) {
-      this.code.push(`${this.indent()}${instr.result} = None`);
-    } else if (value === undefined) {
-      this.code.push(`${this.indent()}${instr.result} = None`);
+    this.varMap.set(instr.result, instr.arg1);
+    if (typeof instr.arg1 === 'string') {
+      this.code.push(`${this.indent()}${instr.result} = "${instr.arg1}"`);
     } else {
-      this.code.push(`${this.indent()}${instr.result} = ${value}`);
+      this.code.push(`${this.indent()}${instr.result} = ${instr.arg1}`);
     }
   }
 

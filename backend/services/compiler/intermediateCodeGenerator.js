@@ -2,11 +2,12 @@
 import { NodeTypes } from './ast.js';
 
 export class IntermediateInstruction {
-  constructor(operation, arg1 = null, arg2 = null, result = null) {
+  constructor(operation, arg1 = null, arg2 = null, result = null, params = []) {
     this.operation = operation;
     this.arg1 = arg1;
     this.arg2 = arg2;
     this.result = result;
+    this.params = params;
   }
   
   toString() {
@@ -149,18 +150,18 @@ export class IntermediateCodeGenerator {
         if (!node.children || node.children.length < 1) {
           throw new Error('Call expression node must have at least 1 child');
         }
-          
-          const funcTemp = this.visitNode(node.children[0]);
-          const argTemps = [];
-          
-          for (let i = 1; i < node.children.length; i++) {
-            argTemps.push(this.visitNode(node.children[i]));
-          }
-          
-          const callResultTemp = this.newTemp();
-          this.emit('CALL', funcTemp, null, callResultTemp, argTemps); // Add params as 4th argument
-          return callResultTemp;
+
+        const funcTemp = this.visitNode(node.children[0]);
+        const argTemps = [];
+        
+        for (let i = 1; i < node.children.length; i++) {
+          argTemps.push(this.visitNode(node.children[i]));
         }
+
+        const callResultTemp = this.newTemp();
+        this.emit('CALL', funcTemp, null, callResultTemp, argTemps); // Add params as 4th argument
+        return callResultTemp;
+      }
           
         case NodeTypes.MEMBER_EXPRESSION: {
           if (!node.children || node.children.length < 1) {
