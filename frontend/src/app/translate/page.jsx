@@ -15,7 +15,9 @@ import {
   BookOpen,
   History,
   Sparkles,
-  AlertTriangle
+  AlertTriangle,
+  Clock,
+  FileText
 } from 'lucide-react';
 
 const languages = [
