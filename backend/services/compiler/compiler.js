@@ -33,7 +33,7 @@ export class CrossCompiler {
       PythonCodeGenerator,
       JavaCodeGenerator,
       CGenerator,
-      JavaScriptGenerator
+      JavaSGenerator
     ];
     
     requiredGenerators.forEach(Generator => {
@@ -115,7 +115,7 @@ export class CrossCompiler {
       python: PythonCodeGenerator,
       java: JavaCodeGenerator,
       c: CGenerator,
-      javascript: JavaScriptGenerator
+      javascript: JavaSGenerator
     };
 
     if (!generators[lang]) {
