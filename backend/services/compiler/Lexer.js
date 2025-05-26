@@ -148,7 +148,7 @@ export class LexicalAnalyzer {
     return new Token(TokenTypes.COMMENT, value, this.line, this.column);
   }
   
-  tokenize() {
+  async tokenize() {
     while (this.position < this.source.length) {
       const char = this.getCurrentChar();
       

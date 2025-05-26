@@ -1,5 +1,5 @@
 import { TokenTypes } from './tokenTypes.js';
-import { ASTNode, NodeTypes } from './tokenTypes.js';
+import { ASTNode, NodeTypes } from './ast.js';
 
 export class SyntaxAnalyzer {
   constructor(tokens) {

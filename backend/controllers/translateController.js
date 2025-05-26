@@ -1,4 +1,5 @@
 import { translateCode as performTranslation } from '../services/translationService.js';
+import { IntermediateInstruction } from '../services/compiler/intermediateCodeGenerator.js';
 
 const MAX_CODE_LENGTH = 10000;
 const VALID_LANGUAGES = new Set(['javascript', 'python', 'java', 'c']);
@@ -35,7 +36,7 @@ export const translateCode = async (req, res) => {
     });
   }
 
-  if (!VALID_LANGUAGES.has(fromLanguage) || !VALID_LANGUAGES.has(toLanguage)) {
+  if (!VALID_LANGUAGES.has(fromLanguage.toLowerCase()) || !VALID_LANGUAGES.has(toLanguage.toLowerCase())) {
     return res.status(400).json({
       message: "Invalid language specification",
       errorCode: 'INVALID_LANGUAGE'
@@ -43,7 +44,7 @@ export const translateCode = async (req, res) => {
   }
 
   try {
-    const translatedCode = performTranslation(sourceCode, fromLanguage, toLanguage);
+    const translatedCode = await performTranslation(sourceCode, fromLanguage.toLowerCase(), toLanguage.toLowerCase());
     
     return res.status(200).json({ 
       translatedCode,

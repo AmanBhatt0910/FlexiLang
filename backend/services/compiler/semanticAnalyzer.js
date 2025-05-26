@@ -1,4 +1,5 @@
-import { TokenTypes } from './tokenTypes.js';
+import { TokenTypes } from "./tokenTypes.js";
+import { NodeTypes } from "./ast.js";
 
 export class SemanticAnalyzer {
   constructor(ast) {
@@ -7,6 +8,30 @@ export class SemanticAnalyzer {
     this.scopeStack = [];
     this.errors = [];
     this.currentScope = 0;
+    this.addPredefinedGlobals();
+  }
+
+  addPredefinedGlobals() {
+    const jsGlobals = {
+      console: {
+        type: 'object',
+        members: ['log', 'warn', 'error'],
+        builtin: true
+      },
+      Math: { type: 'object', builtin: true },
+      Date: { type: 'constructor', builtin: true },
+      JSON: { type: 'object', builtin: true },
+      setTimeout: { type: 'function', builtin: true },
+      clearTimeout: { type: 'function', builtin: true }
+    };
+
+    Object.entries(jsGlobals).forEach(([name, meta]) => {
+      this.symbolTable.set(name, {
+        ...meta,
+        scope: 0,
+        used: false
+      });
+    });
   }
   
   enterScope() {
@@ -64,7 +89,21 @@ export class SemanticAnalyzer {
   }
   
   visitNode(node) {
-    if (!node) return;
+    if (!node) {
+      console.warn('visitNode called with null/undefined node');
+      return;
+    }
+    
+    // Ensure node has required properties
+    if (!node.type) {
+      console.warn('Node missing type property:', node);
+      return;
+    }
+
+    // Ensure children array exists
+    if (!Array.isArray(node.children)) {
+      node.children = [];
+    }
     
     switch (node.type) {
       case NodeTypes.PROGRAM:
@@ -72,10 +111,12 @@ export class SemanticAnalyzer {
         break;
         
       case NodeTypes.FUNCTION_DECLARATION:
-        this.declare(node.value, 'function');
+        if (node.value) {
+          this.declare(node.value, 'function');
+        }
         this.enterScope();
         // Declare parameters
-        if (node.attributes.parameters) {
+        if (node.attributes && node.attributes.parameters) {
           node.attributes.parameters.forEach(param => {
             this.declare(param, 'parameter');
           });
@@ -85,17 +126,21 @@ export class SemanticAnalyzer {
         break;
         
       case NodeTypes.VARIABLE_DECLARATION:
-        const varType = this.inferType(node.children[0]);
-        this.declare(node.value, varType);
+        if (node.value) {
+          const varType = this.inferType(node.children[0]);
+          this.declare(node.value, varType);
+        }
         node.children.forEach(child => this.visitNode(child));
         break;
         
       case NodeTypes.IDENTIFIER:
-        const symbol = this.lookup(node.value);
-        if (!symbol) {
-          this.errors.push(`Undefined variable '${node.value}'`);
-        } else {
-          symbol.used = true;
+        if (node.value) {
+          const symbol = this.lookup(node.value);
+          if (!symbol) {
+            this.errors.push(`Undefined variable '${node.value}'`);
+          } else {
+            symbol.used = true;
+          }
         }
         break;
         
@@ -118,6 +163,22 @@ export class SemanticAnalyzer {
         break;
         
       case NodeTypes.MEMBER_EXPRESSION:
+        if (node.children.length >= 2) {
+          const [objectNode, propertyNode] = node.children;
+          
+          if (objectNode && objectNode.value) {
+            const objectSymbol = this.lookup(objectNode.value);
+            
+            if (!objectSymbol) {
+              this.errors.push(`Undefined object '${objectNode.value}'`);
+            } else if (objectSymbol.builtin && objectSymbol.members && propertyNode && propertyNode.value) {
+              if (!objectSymbol.members.includes(propertyNode.value)) {
+                this.errors.push(`${objectNode.value} has no member '${propertyNode.value}'`);
+              }
+            }
+          }
+        }
+        
         node.children.forEach(child => this.visitNode(child));
         break;
         
@@ -135,7 +196,13 @@ export class SemanticAnalyzer {
         node.children.forEach(child => this.visitNode(child));
         break;
         
+      case NodeTypes.LITERAL:
+        // Literals don't need special handling, just visit children if any
+        node.children.forEach(child => this.visitNode(child));
+        break;
+        
       default:
+        console.warn(`Unknown node type: ${node.type}`);
         // Visit all children by default
         node.children.forEach(child => this.visitNode(child));
     }
@@ -146,15 +213,15 @@ export class SemanticAnalyzer {
     
     switch (node.type) {
       case NodeTypes.LITERAL:
-        if (node.attributes.dataType === TokenTypes.NUMBER) return 'number';
-        if (node.attributes.dataType === TokenTypes.STRING) return 'string';
+        if (node.attributes && node.attributes.dataType === TokenTypes.NUMBER) return 'number';
+        if (node.attributes && node.attributes.dataType === TokenTypes.STRING) return 'string';
         if (node.value === true || node.value === false) return 'boolean';
         return 'undefined';
         
       case NodeTypes.BINARY_EXPRESSION:
         const leftType = this.inferType(node.children[0]);
         const rightType = this.inferType(node.children[1]);
-        const operator = node.attributes.operator;
+        const operator = node.attributes && node.attributes.operator;
         
         if (['+', '-', '*', '/', '%'].includes(operator)) {
           if (operator === '+' && (leftType === 'string' || rightType === 'string')) {
@@ -170,8 +237,11 @@ export class SemanticAnalyzer {
         return 'unknown';
         
       case NodeTypes.IDENTIFIER:
-        const symbol = this.lookup(node.value);
-        return symbol ? symbol.type : 'unknown';
+        if (node.value) {
+          const symbol = this.lookup(node.value);
+          return symbol ? symbol.type : 'unknown';
+        }
+        return 'unknown';
         
       default:
         return 'unknown';

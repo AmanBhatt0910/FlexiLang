@@ -1,9 +1,29 @@
 import { CrossCompiler } from './compiler/compiler.js';
 import { TokenTypes } from './compiler/tokenTypes.js';
+import { NodeTypes } from './compiler/ast.js';
 import { validateLexerDependencies } from './compiler/Lexer.js';
-import { ASTNode, NodeTypes } from './compiler/ast.js';
+import { ASTNode } from './compiler/ast.js';
+import { IntermediateInstruction, IntermediateCodeGenerator } from './compiler/intermediateCodeGenerator.js';
+
+// Debug the imports immediately after importing
+console.log('=== IMPORT DEBUG ===');
+console.log('IntermediateInstruction type:', typeof IntermediateInstruction);
+console.log('IntermediateCodeGenerator type:', typeof IntermediateCodeGenerator);
+console.log('IntermediateInstruction:', IntermediateInstruction);
+console.log('IntermediateCodeGenerator:', IntermediateCodeGenerator);
+
+// Test creating an instance
+try {
+  const testInst = new IntermediateInstruction('TEST', 'arg1', 'arg2', 'result');
+  console.log('IntermediateInstruction test instance created successfully:', testInst.toString());
+} catch (error) {
+  console.error('Failed to create IntermediateInstruction test instance:', error.message);
+}
 
 if (!global.NodeTypes) global.NodeTypes = NodeTypes;
+if (!global.IntermediateInstruction) global.IntermediateInstruction = IntermediateInstruction;
+if (!global.IntermediateCodeGenerator) global.IntermediateCodeGenerator = IntermediateCodeGenerator;
+
 // Enhanced dependency validation
 const validateDependencies = () => {
   const issues = [];
@@ -16,8 +36,19 @@ const validateDependencies = () => {
     issues.push('NodeTypes missing critical PROGRAM type');
   }
 
+  // Add validation for intermediate code generator classes
+  if (!IntermediateInstruction || typeof IntermediateInstruction !== 'function') {
+    issues.push('IntermediateInstruction class not loaded properly');
+  }
+  
+  if (!IntermediateCodeGenerator || typeof IntermediateCodeGenerator !== 'function') {
+    issues.push('IntermediateCodeGenerator class not loaded properly');
+  }
+
   console.log('AST NodeTypes:', NodeTypes);
   console.log('ASTNode prototype:', ASTNode?.prototype ? 'Valid' : 'Invalid');
+  console.log('IntermediateInstruction available:', !!IntermediateInstruction);
+  console.log('IntermediateCodeGenerator available:', !!IntermediateCodeGenerator);
 
   if (!ASTNode || typeof ASTNode !== 'function') {
     issues.push('ASTNode class not loaded');
@@ -101,7 +132,9 @@ const compiler = (() => {
     console.error('Available imports:', {
       CrossCompiler: typeof CrossCompiler,
       TokenTypes: typeof TokenTypes,
-      TokenTypesKeys: TokenTypes ? Object.keys(TokenTypes).length : 'N/A'
+      TokenTypesKeys: TokenTypes ? Object.keys(TokenTypes).length : 'N/A',
+      IntermediateInstruction: typeof IntermediateInstruction,
+      IntermediateCodeGenerator: typeof IntermediateCodeGenerator
     });
     
     // In production, return null instead of exiting
@@ -132,13 +165,26 @@ const sanitizeCode = (code) => {
     .trim();
 };
 
-export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
+export const translateCode = async (sourceCode, fromLanguage, toLanguage) => {
   const startTime = Date.now();
 
   console.log('Available NodeTypes:', Object.keys(NodeTypes).length, 'types');
   if (!NodeTypes.VARIABLE_DECLARATION) {
     throw new Error('Critical NodeTypes missing in compilation context');
   }
+
+  // Debug intermediate code classes at the point of use
+  console.log('=== RUNTIME DEBUG ===');
+  console.log('IntermediateInstruction at runtime:', typeof IntermediateInstruction);
+  console.log('IntermediateCodeGenerator at runtime:', typeof IntermediateCodeGenerator);
+  console.log('global.IntermediateInstruction:', typeof global.IntermediateInstruction);
+  
+  // Try to access from different scopes
+  const LocalIntermediateInstruction = IntermediateInstruction || global.IntermediateInstruction;
+  const LocalIntermediateCodeGenerator = IntermediateCodeGenerator || global.IntermediateCodeGenerator;
+  
+  console.log('LocalIntermediateInstruction:', typeof LocalIntermediateInstruction);
+  console.log('LocalIntermediateCodeGenerator:', typeof LocalIntermediateCodeGenerator);
   
   try {
     // Pre-flight checks
@@ -196,8 +242,21 @@ export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
 
     console.log('TokenTypes available for compilation:', Object.keys(TokenTypes).length, 'tokens');
     
-    const result = compiler.compile(sanitizedCode, fromLang, toLang);
+    // Test creating IntermediateInstruction before compilation
+    try {
+      const testInstruction = new (LocalIntermediateInstruction || IntermediateInstruction)('TEST', 'a', 'b', 'result');
+      console.log('Pre-compilation test instruction created:', testInstruction.toString());
+    } catch (testError) {
+      console.error('Failed to create test instruction:', testError.message);
+      throw new Error(`IntermediateInstruction class not accessible: ${testError.message}`);
+    }
     
+    const result = await compiler.compile(sanitizedCode, fromLang, toLang);
+    
+    if (result instanceof Promise) {
+      throw new Error("Compiler returned promise instead of result - missing async handling");
+    }
+
     if (!result) {
       throw new Error("Compiler returned null result");
     }
@@ -250,7 +309,9 @@ export const translateCode = (sourceCode, fromLanguage, toLanguage) => {
         compilerStatus: compiler ? 'available' : 'not available',
         tokenTypesStatus: TokenTypes ? 'loaded' : 'not loaded',
         tokenTypesCount: TokenTypes ? Object.keys(TokenTypes).length : 0,
-        processingTime: processingTime
+        processingTime: processingTime,
+        intermediateInstructionStatus: typeof IntermediateInstruction,
+        intermediateCodeGeneratorStatus: typeof IntermediateCodeGenerator
       }
     });
     
@@ -293,6 +354,8 @@ export const getServiceHealth = () => {
     timestamp: new Date().toISOString(),
     compiler: !!compiler,
     tokenTypes: !!TokenTypes,
+    intermediateInstruction: !!IntermediateInstruction,
+    intermediateCodeGenerator: !!IntermediateCodeGenerator,
     status: 'unknown'
   };
   
@@ -302,6 +365,12 @@ export const getServiceHealth = () => {
   } else if (!TokenTypes) {
     health.status = 'error';
     health.message = 'TokenTypes not loaded';
+  } else if (!IntermediateInstruction) {
+    health.status = 'error';
+    health.message = 'IntermediateInstruction not loaded';
+  } else if (!IntermediateCodeGenerator) {
+    health.status = 'error';
+    health.message = 'IntermediateCodeGenerator not loaded';
   } else {
     try {
       const languages = compiler.getSupportedLanguages();
