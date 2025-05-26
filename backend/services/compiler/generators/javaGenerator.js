@@ -2,6 +2,9 @@ export class JavaCodeGenerator {
   constructor(intermediateCode) {
     console.log('=== JavaCodeGenerator Constructor ===');
     console.log('Intermediate Code:', intermediateCode);
+
+    this.varMap = new Map();
+    this.varTypes = new Map();
     
     // FIX: Properly extract instructions from the intermediate code object
     if (Array.isArray(intermediateCode)) {
@@ -463,6 +466,13 @@ export class JavaCodeGenerator {
     this.usedVars.add(result);
   }
 
+   resolveValue(value) {
+    if (this.varMap.has(value)) {
+      return this.varMap.get(value);
+    }
+    return value;
+  }
+
   handleSub(instr) {
     console.log('=== handleSub ===');
     const left = this.resolveValue(instr.arg1);
@@ -586,11 +596,18 @@ export class JavaCodeGenerator {
     console.log('params:', instr.params);
     console.log('result:', instr.result);
     console.log('Current varMap:', [...this.varMap.entries()]);
+
+    // Block recursive main() calls
+    if (instr.arg1 === 'main' && this.inMainMethod) {
+      console.error('Recursive main() call blocked');
+      this.code.push(`${this.indent()}// Error: main() cannot be called recursively`);
+      return;
+    }
     
     // Resolve function name from varMap first, then try direct lookup
-    let funcName = this.varMap.get(instr.arg1);
-    if (funcName === undefined) {
-      // If not in varMap, check if it's a direct function reference
+    let funcName = this.resolveValue(instr.arg1);
+    if (funcName === instr.arg1 && !this.varMap.has(instr.arg1)) {
+      // If not in varMap, use the original function name
       funcName = instr.arg1;
     }
     
@@ -599,13 +616,7 @@ export class JavaCodeGenerator {
     const params = instr.params || [];
     console.log('Parameters to resolve:', params);
     
-    // Resolve parameters from varMap or constants
-    const args = params.map((param, index) => {
-      const resolved = this.resolveValue(param);
-      console.log(`Resolving parameter ${index}: ${param} -> ${resolved}`);
-      return resolved;
-    }).join(', ');
-    
+    const args = params.map(p => this.resolveValue(p)).join(', ');
     console.log('Final arguments string:', args);
 
     // Special handling for built-in functions
@@ -649,9 +660,9 @@ export class JavaCodeGenerator {
     } else {
       // Function call without assignment (side effects only)
       console.log('Generating function call without assignment');
-      this.code.push(`${this.indent()}${funcName}(${args});`);
+        this.code.push(`${this.indent()}${funcName}(${args});`);
+      }
     }
-  }
 
   handleLoadConst(instr) {
     console.log('=== handleLoadConst ===');
@@ -670,7 +681,7 @@ export class JavaCodeGenerator {
     console.log('VarMap after setting:', [...this.varMap.entries()]);
   }
 
-  handleAssign(instr) {
+ handleAssign(instr) {
     console.log('=== handleAssign ===');
     if (!instr.result || instr.arg1 === undefined || instr.arg1 === null) {
       console.warn('Invalid ASSIGN instruction:', instr);
@@ -678,14 +689,32 @@ export class JavaCodeGenerator {
     }
 
     const resolvedValue = this.resolveValue(instr.arg1);
-    const sourceType = this.varTypes.get(instr.arg1) || this.inferType(instr.arg1);
-    
-    // Check if variable already exists
+    const sourceType = this.varTypes.get(instr.arg1) || this.inferType(resolvedValue);
+
+    // Handle numeric assignments with proper type inference
+    if (typeof resolvedValue === 'number') {
+      if (this.usedVars.has(instr.result)) {
+        this.code.push(`${this.indent()}${instr.result} = ${resolvedValue};`);
+      } else {
+        const numType = Number.isInteger(resolvedValue) ? 'int' : 'double';
+        this.code.push(`${this.indent()}${numType} ${instr.result} = ${resolvedValue};`);
+        this.usedVars.add(instr.result);
+        this.varTypes.set(instr.result, numType);
+      }
+      this.varMap.set(instr.result, instr.result);
+      return;
+    }
+
+    // Handle other types
     if (this.usedVars.has(instr.result)) {
+      // Variable already exists, just assign
       this.code.push(`${this.indent()}${instr.result} = ${resolvedValue};`);
     } else {
-      this.code.push(`${this.indent()}${sourceType} ${instr.result} = ${resolvedValue};`);
+      // New variable declaration with assignment
+      const varType = sourceType === 'Object' ? 'Object' : sourceType;
+      this.code.push(`${this.indent()}${varType} ${instr.result} = ${resolvedValue};`);
       this.usedVars.add(instr.result);
+      this.varTypes.set(instr.result, varType);
     }
     
     // Update variable mapping
@@ -695,7 +724,6 @@ export class JavaCodeGenerator {
     } else {
       this.varMap.set(instr.result, instr.result);
     }
-    this.varTypes.set(instr.result, sourceType);
   }
 
   handleDeclare(instr) {
@@ -935,17 +963,23 @@ export class JavaCodeGenerator {
   }
 
   inferType(value) {
-    if (typeof value === 'string') {
-      if (value.startsWith('"')) return 'String';
-      if (value === 'true' || value === 'false') return 'boolean';
-      if (!isNaN(value)) return this.getNumberType(value);
-    }
+    if (!isNaN(value)) return 'int';
+    if (typeof value === 'string' && value.startsWith('"')) return 'String';
     return 'Object';
   }
 
   getArithmeticResultType(type1, type2) {
     const precedence = { double: 3, int: 2, boolean: 1 };
     return precedence[type1] > precedence[type2] ? type1 : type2;
+  }
+
+  postProcessCode(code) {
+    return code.split('\n')
+      .filter(line => !line.includes('Object t0 = main()'))
+      .filter(line => !line.includes('/* Error:'))
+      .join('\n')
+      .replace(/\/\/.*/g, '') // Remove comments
+      .replace(/\n{3,}/g, '\n\n');
   }
 
   mapMathMethod(method) {
