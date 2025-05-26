@@ -1,4 +1,4 @@
-export class CCodeGenerator {
+export class CGenerator {
   constructor(intermediateCode) {
     console.log('=== CCodeGenerator Constructor ===');
     console.log('Intermediate Code:', intermediateCode);
