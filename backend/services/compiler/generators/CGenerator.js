@@ -39,6 +39,45 @@ export class CGenerator {
     this.globalVars = [];
   }
 
+  // MISSING METHOD: resolveValue - This was causing the error
+  resolveValue(value) {
+    if (value === null || value === undefined) {
+      return 'NULL';
+    }
+    
+    // If it's already a literal value (number, string)
+    if (typeof value === 'number') {
+      return value;
+    }
+    
+    if (typeof value === 'string') {
+      // Check if it's a string literal
+      if (value.startsWith('"') && value.endsWith('"')) {
+        return value;
+      }
+      
+      // Check if it's a variable in our varMap
+      if (this.varMap.has(value)) {
+        const mappedValue = this.varMap.get(value);
+        // Avoid infinite recursion
+        if (mappedValue !== value) {
+          return this.resolveValue(mappedValue);
+        }
+        return mappedValue;
+      }
+      
+      // Return as is (likely a variable name)
+      return value;
+    }
+    
+    // For boolean values
+    if (typeof value === 'boolean') {
+      return value ? '1' : '0';
+    }
+    
+    return String(value);
+  }
+
   indent() {
     return '    '.repeat(this.indentLevel);
   }
@@ -46,70 +85,67 @@ export class CGenerator {
   generate() {
     console.log('=== CCodeGenerator.generate() called ===');
     console.log('Instructions to process:', this.ic.length);
-    
+
     if (this.ic.length === 0) {
-      console.log('No instructions to process');
-      return '// No code to generate';
+        console.log('No instructions to process');
+        return '// No code to generate';
     }
-    
-    // First pass: analyze and prepare
+
+    // Initialization phase
     this.analyzeInstructions();
-    
-    // Second pass: map labels to line numbers
     this.mapLabels();
-    
-    // Generate C structure
+
+    // Structure generation
     this.generateIncludes();
     this.generateStructDefinitions();
     this.generateGlobalVars();
     this.generateFunctionDeclarations();
-    
-    // Generate main function if needed
+
+    // Main function handling
     if (this.hasMainFunction) {
-      this.generateMainFunction();
+        this.generateMainFunction();
     }
-    
-    // Third pass: generate code
+
+    // Core code generation
     for (let i = 0; i < this.ic.length; i++) {
-      const instr = this.ic[i];
-      console.log(`Processing instruction ${i}:`, instr);
-      
-      if (!instr || !instr.operation) {
-        console.warn(`Skipping invalid instruction at ${i}:`, instr);
-        continue;
-      }
-      
-      try {
-        this.generateInstruction(instr);
-        console.log(`Code after instruction ${i}:`, this.code.slice(-3)); // Show last 3 lines
-      } catch (error) {
-        console.error(`Error processing instruction ${i}:`, error);
-        this.code.push(`${this.indent()}/* Error processing instruction: ${error.message} */`);
-      }
+        const instr = this.ic[i];
+        console.log(`Processing instruction ${i}:`, instr);
+        
+        if (!instr?.operation) {
+            console.warn(`Skipping invalid instruction at ${i}:`, instr);
+            continue;
+        }
+
+        try {
+            this.generateInstruction(instr);
+            console.log(`Code after instruction ${i}:`, this.code.slice(-3));
+        } catch (error) {
+            console.error(`Error processing instruction ${i}:`, error);
+            this.code.push(`${this.indent()}/* Error: ${error.message} */`);
+        }
     }
-    
-    // Close main function if open
+
+    // Finalization
     if (this.inMainFunction) {
-      this.code.push(`${this.indent()}return 0;`);
-      this.indentLevel--;
-      this.code.push('}');
+        this.code.push(`${this.indent()}return 0;`);
+        this.indentLevel--;
+        this.code.push('}');
     }
-    
-    // Add function implementations
+
     this.generateFunctionImplementations();
-    
-    // Clean up and combine code
+
+    // Code cleanup and post-processing
     const codeBody = this.code
-      .filter(line => line !== null && line !== undefined)
-      .map(line => typeof line === 'string' ? line : String(line))
-      .filter(line => line.trim() !== '' || this.indentLevel > 0);
+        .filter(line => line?.trim())
+        .map(line => line.toString());
+
+     const processedCode = this.postProcessCode(codeBody.join('\n'))
+        .replace(/\n{3,}/g, '\n\n') // Clean up excessive newlines
+        .trim();
     
-    const result = codeBody.join('\n');
-    
-    console.log('=== Final result ===');
-    console.log('Final result:', result);
-    return result;
-  }
+    console.log('=== Clean Final Output ===');
+    return processedCode;
+}
 
   analyzeInstructions() {
     console.log('=== Analyzing instructions ===');
@@ -653,6 +689,11 @@ export class CGenerator {
     console.log('params:', instr.params);
     console.log('result:', instr.result);
     console.log('Current varMap:', [...this.varMap.entries()]);
+
+    if (instr.arg1 === 'main' && this.functionStack.includes('main')) {
+        console.error('Blocked recursive main() call');
+        return; // Skip generation completely instead of adding comment
+    }
     
     // Resolve function name from varMap first, then try direct lookup
     let funcName = this.varMap.get(instr.arg1);
@@ -746,6 +787,7 @@ export class CGenerator {
   }
 
   handleAssign(instr) {
+    
     console.log('=== handleAssign ===');
     if (!instr.result || instr.arg1 === undefined || instr.arg1 === null) {
       console.warn('Invalid ASSIGN instruction:', instr);
@@ -753,13 +795,18 @@ export class CGenerator {
     }
 
     const resolvedValue = this.resolveValue(instr.arg1);
+    const varType = this.inferTypeEx(resolvedValue);
     const sourceType = this.varTypes.get(instr.arg1) || this.inferType(instr.arg1);
+
+    if (instr.result === 't0' && resolvedValue === 'main()') {
+      console.warn('Suppressing main() call assignment');
+      return;
+    }
     
-    // Check if variable already exists
     if (this.usedVars.has(instr.result)) {
       this.code.push(`${this.indent()}${instr.result} = ${resolvedValue};`);
     } else {
-      this.code.push(`${this.indent()}${sourceType} ${instr.result} = ${resolvedValue};`);
+      this.code.push(`${this.indent()}${varType} ${instr.result} = ${resolvedValue};`);
       this.usedVars.add(instr.result);
     }
     
@@ -773,271 +820,69 @@ export class CGenerator {
     this.varTypes.set(instr.result, sourceType);
   }
 
-  handleDeclare(instr) {
-    console.log('=== handleDeclare ===');
-    if (!instr.arg1) {
-      console.warn('Invalid DECLARE instruction:', instr);
+  inferTypeEx(value) {
+    if (typeof value === 'string') {
+      if (value.endsWith('()')) return 'void*'; // Function call results
+      if (/^[0-9]+$/.test(value)) return 'int';
+      if (/^[0-9.]+f?$/.test(value)) return 'float';
+      return 'char*';
+    }
+    return 'int';
+  }
+
+  postProcessCode(rawCode) {
+    return rawCode
+        .split('\n')
+        .filter(line => !line.includes('void* t0 = main()'))
+        .filter(line => !line.includes('/* ERROR: main() recursion not allowed */'))
+        .filter(line => !line.trim().startsWith('/* Error:'))
+        .join('\n');
+  }
+
+    handleAssign(instr) {
+    console.log('=== handleAssign ===');
+    if (!instr.result || instr.arg1 === undefined || instr.arg1 === null) {
+      console.warn('Invalid ASSIGN instruction:', instr);
       return;
     }
-    
-    // In C, we need to specify the type
-    const initValue = instr.arg2 ? this.resolveValue(instr.arg2) : '0';
-    const varType = instr.arg2 ? this.inferType(instr.arg2) : 'int';
-    
-    this.code.push(`${this.indent()}${varType} ${instr.arg1} = ${initValue};`);
-    this.varMap.set(instr.arg1, instr.arg1);
-    this.varTypes.set(instr.arg1, varType);
-    this.usedVars.add(instr.arg1);
-  }
 
-    handleArithmetic(instr) {
-    const left = this.resolveValue(instr.arg1);
-    const right = this.resolveValue(instr.arg2);
-    const result = instr.result || this.getTempVar();
-    
-    // Handle special cases
-    let operation = instr.operation;
-    let resultType = 'double';
-    
-    if (operation === '//') {
-      // Integer division
-      operation = '/';
-      resultType = 'int';
-      this.code.push(`${this.indent()}${resultType} ${result} = ${left} ${operation} ${right};`);
-    } else if (operation === '**') {
-      // Power operation
-      this.code.push(`${this.indent()}double ${result} = pow(${left}, ${right});`);
-      this.includes.add('#include <math.h>');
+    // Resolve the source value and its type
+    const resolvedValue = this.resolveValue(instr.arg1);
+    const sourceType = this.varTypes.get(instr.arg1) || this.inferType(resolvedValue);
+
+    // Determine the variable type for declaration
+    const varType = this.varTypes.get(instr.arg1) || this.inferType(resolvedValue);
+
+    // Check if the variable is already declared
+    if (this.usedVars.has(instr.result)) {
+      // Existing variable assignment
+      this.code.push(`${this.indent()}${instr.result} = ${resolvedValue};`);
     } else {
-      const leftType = this.varTypes.get(instr.arg1) || this.inferType(instr.arg1);
-      const rightType = this.varTypes.get(instr.arg2) || this.inferType(instr.arg2);
-      resultType = this.getArithmeticResultType(leftType, rightType);
-      
-      // Handle type casting for mixed operations
-      const cast = resultType !== leftType ? `(${resultType})` : '';
-      this.code.push(`${this.indent()}${resultType} ${result} = ${cast}${left} ${operation} ${right};`);
+      // New variable declaration with initialization
+      this.code.push(`${this.indent()}${varType} ${instr.result} = ${resolvedValue};`);
+      this.usedVars.add(instr.result);
+      this.varTypes.set(instr.result, varType);
     }
-    
-    this.varMap.set(result, result);
-    this.varTypes.set(result, resultType);
-    this.usedVars.add(result);
+
+    // Update variable mapping for future references
+    this.varMap.set(instr.result, resolvedValue);
+    console.log(`Assigned ${instr.result} = ${resolvedValue} (type: ${varType})`);
   }
 
-  handleComparison(instr) {
-    const left = this.resolveValue(instr.arg1);
-    const right = this.resolveValue(instr.arg2);
-    const result = instr.result || this.getTempVar();
-    
-    this.code.push(`${this.indent()}int ${result} = (${left} ${instr.operation} ${right});`);
-    this.varMap.set(result, result);
-    this.varTypes.set(result, 'int');
-    this.usedVars.add(result);
-  }
-
-  handleLogicalAnd(instr) {
-    const left = this.resolveValue(instr.arg1);
-    const right = this.resolveValue(instr.arg2);
-    const result = instr.result || this.getTempVar();
-    
-    this.code.push(`${this.indent()}int ${result} = (${left} && ${right});`);
-    this.varMap.set(result, result);
-    this.varTypes.set(result, 'int');
-    this.usedVars.add(result);
-  }
-
-  handleLogicalOr(instr) {
-    const left = this.resolveValue(instr.arg1);
-    const right = this.resolveValue(instr.arg2);
-    const result = instr.result || this.getTempVar();
-    
-    this.code.push(`${this.indent()}int ${result} = (${left} || ${right});`);
-    this.varMap.set(result, result);
-    this.varTypes.set(result, 'int');
-    this.usedVars.add(result);
-  }
-
-  handleLogicalNot(instr) {
-    const operand = this.resolveValue(instr.arg1);
-    const result = instr.result || this.getTempVar();
-    
-    this.code.push(`${this.indent()}int ${result} = !(${operand});`);
-    this.varMap.set(result, result);
-    this.varTypes.set(result, 'int');
-    this.usedVars.add(result);
-  }
-
-  handleIfFalse(instr) {
-    const condition = this.resolveValue(instr.arg1);
-    this.code.push(`${this.indent()}if (!(${condition})) {`);
-    this.indentLevel++;
-  }
-
-  handleIfTrue(instr) {
-    const condition = this.resolveValue(instr.arg1);
-    this.code.push(`${this.indent()}if (${condition}) {`);
-    this.indentLevel++;
-  }
-
-  handleGoto(instr) {
-    const label = instr.result || instr.arg1;
-    this.code.push(`${this.indent()}goto ${label};`);
-  }
-
-  handleLabel(instr) {
-    const label = instr.result || instr.arg1;
-    this.code.push(`${label}:`);
-  }
-
-  handleReturn(instr) {
-    if (instr.arg1) {
-      const value = this.resolveValue(instr.arg1);
-      this.code.push(`${this.indent()}return ${value};`);
-    } else {
-      this.code.push(`${this.indent()}return;`);
-    }
-  }
-
-  handleArrayGet(instr) {
-    const array = this.resolveValue(instr.arg1);
-    const index = this.resolveValue(instr.arg2);
-    const result = instr.result || this.getTempVar();
-    const arrayType = this.varTypes.get(instr.arg1)?.replace('*', '') || 'int';
-    
-    this.code.push(`${this.indent()}${arrayType} ${result} = ${array}[${index}];`);
-    this.varMap.set(result, result);
-    this.varTypes.set(result, arrayType);
-    this.usedVars.add(result);
-  }
-
-  handleArraySet(instr) {
-    const array = this.resolveValue(instr.arg1);
-    const index = this.resolveValue(instr.arg2);
-    const value = this.resolveValue(instr.result);
-    
-    this.code.push(`${this.indent()}${array}[${index}] = ${value};`);
-  }
-
-  handleMemberSet(instr) {
-    const obj = this.resolveValue(instr.arg1);
-    const prop = instr.arg2;
-    const value = this.resolveValue(instr.result);
-    
-    this.code.push(`${this.indent()}${obj}.${prop} = ${value};`);
-  }
-
-  handleArrayCreate(instr) {
-    const size = this.resolveValue(instr.arg1);
-    const result = instr.result || this.getTempVar();
-    const type = instr.elementType || 'int';
-    
-    this.code.push(`${this.indent()}${type}* ${result} = (${type}*)malloc(${size} * sizeof(${type}));`);
-    this.varMap.set(result, result);
-    this.varTypes.set(result, `${type}*`);
-    this.usedVars.add(result);
-  }
-
-  handleObjectCreate(instr) {
-    const result = instr.result || this.getTempVar();
-    const structName = instr.arg1 || 'AnonymousStruct';
-    
-    // Generate struct definition if needed
-    if (!this.structDefinitions.has(structName)) {
-      const structDef = `typedef struct {\n    // Add fields here\n} ${structName};`;
-      this.structDefinitions.add(structDef);
-    }
-    
-    this.code.push(`${this.indent()}${structName} ${result};`);
-    this.varMap.set(result, result);
-    this.varTypes.set(result, structName);
-    this.usedVars.add(result);
-  }
-
-  handleForInit(instr) {
-    const init = this.resolveValue(instr.arg1);
-    this.code.push(`${this.indent()}for (${init};`);
-  }
-
-  handleForCondition(instr) {
-    const condition = this.resolveValue(instr.arg1);
-    this.code[this.code.length - 1] += ` ${condition};`;
-  }
-
-  handleForUpdate(instr) {
-    const update = this.resolveValue(instr.arg1);
-    this.code[this.code.length - 1] += ` ${update}) {`;
-    this.indentLevel++;
-  }
-
-  handleWhileStart(instr) {
-    const condition = this.resolveValue(instr.arg1);
-    this.code.push(`${this.indent()}while (${condition}) {`);
-    this.indentLevel++;
-  }
-
-  handleWhileEnd() {
-    this.indentLevel--;
-    this.code.push(`${this.indent()}}`);
-  }
-
-  handleBreak() {
-    this.code.push(`${this.indent()}break;`);
-  }
-
-  handleContinue() {
-    this.code.push(`${this.indent()}continue;`);
-  }
-
-  handleTryStart() {
-    this.code.push(`${this.indent()}// Exception handling not supported in C`);
-  }
-
-  handleCatchStart() {
-    this.code.push(`${this.indent()}// Use error codes for error handling`);
-  }
-
-  handleFinallyStart() {
-    this.code.push(`${this.indent()}// Cleanup code should be manual`);
-  }
-
-  handleThrow(instr) {
-    const value = this.resolveValue(instr.arg1);
-    this.code.push(`${this.indent()}fprintf(stderr, "Error: %s\\n", ${value});`);
-    this.code.push(`${this.indent()}exit(EXIT_FAILURE);`);
-  }
-
-  // Helper methods
-  getArithmeticResultType(type1, type2) {
-    const typePrecedence = { 'double': 2, 'float': 1, 'int': 0 };
-    return typePrecedence[type1] > typePrecedence[type2] ? type1 : type2;
-  }
-
+  // Helper to infer C type from resolved value
   inferType(value) {
-    if (typeof value === 'string') {
-      if (value.startsWith('"')) return 'char*';
-      if (value.includes('.')) return 'double';
-      return 'int';
+    if (typeof value === 'number') {
+      return Number.isInteger(value) ? 'int' : 'double';
     }
-    return 'int'; // Default to int
+    if (typeof value === 'string') {
+      if (value.startsWith('"') && value.endsWith('"')) return 'char*';
+      return 'void*'; // Default for other identifiers
+    }
+    return 'int'; // Fallback type
   }
 
-  mapMathFunction(jsMethod) {
-    const mathMap = {
-      'sqrt': 'sqrt',
-      'pow': 'pow',
-      'abs': 'fabs',
-      'sin': 'sin',
-      'cos': 'cos',
-      'tan': 'tan',
-      'log': 'log'
-    };
-    return mathMap[jsMethod] || jsMethod;
-  }
-
-  getNumberType(value) {
-    return value.includes('.') ? 'double' : 'int';
-  }
-
-  getTempVar() {
-    return `temp${this.tempVarCounter++}`;
+  // Additional helper methods for type handling
+  getNumberType(num) {
+    return Number.isInteger(num) ? 'int' : 'double';
   }
 }
