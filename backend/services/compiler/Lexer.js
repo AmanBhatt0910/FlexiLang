@@ -7,6 +7,10 @@ export class Token {
     this.line = line;
     this.column = column;
   }
+
+  toString() {
+    return `Token(${this.type}, ${this.value}, ${this.line}:${this.column})`;
+  }
 }
 
 export class LexicalAnalyzer {
@@ -16,8 +20,8 @@ export class LexicalAnalyzer {
       throw new Error('TokenTypes not properly loaded or initialized');
     }
     
-    console.log('Lexer initialized with TokenTypes:', TokenTypes);
-    this.source = sourceCode;
+    console.log(`Lexer initialized with TokenTypes: ${Object.keys(TokenTypes).length} types available`);
+    this.source = sourceCode.trim();
     this.position = 0;
     this.line = 1;
     this.column = 1;
@@ -75,11 +79,13 @@ export class LexicalAnalyzer {
       this.advance();
     }
     
-    return new Token(TokenTypes.NUMBER, parseFloat(value), this.line, this.column);
+    return new Token(TokenTypes.NUMBER, hasDecimal ? parseFloat(value) : parseInt(value), this.line, this.column);
   }
   
   readString(quote) {
     let value = '';
+    const startLine = this.line;
+    const startColumn = this.column;
     this.advance(); // Skip opening quote
     
     while (this.getCurrentChar() && this.getCurrentChar() !== quote) {
@@ -93,7 +99,8 @@ export class LexicalAnalyzer {
           case '\\': value += '\\'; break;
           case '"': value += '"'; break;
           case "'": value += "'"; break;
-          default: value += escaped;
+          case '`': value += '`'; break;
+          default: value += escaped || '';
         }
       } else {
         value += this.getCurrentChar();
@@ -105,37 +112,60 @@ export class LexicalAnalyzer {
       this.advance(); // Skip closing quote
     }
     
-    return new Token(TokenTypes.STRING, value, this.line, this.column);
+    return new Token(TokenTypes.STRING, value, startLine, startColumn);
   }
   
   readIdentifier() {
     let value = '';
+    const startLine = this.line;
+    const startColumn = this.column;
     
     while (this.getCurrentChar() && (/[a-zA-Z0-9_$]/.test(this.getCurrentChar()))) {
       value += this.getCurrentChar();
       this.advance();
     }
     
+    // Check for boolean literals
+    if (value === 'true' || value === 'false') {
+      return new Token(TokenTypes.BOOLEAN, value === 'true', startLine, startColumn);
+    }
+    
+    // Check for null and undefined
+    if (value === 'null') {
+      return new Token(TokenTypes.NULL, null, startLine, startColumn);
+    }
+    
+    if (value === 'undefined') {
+      return new Token(TokenTypes.UNDEFINED, undefined, startLine, startColumn);
+    }
+    
     const type = this.keywords.has(value) ? TokenTypes.KEYWORD : TokenTypes.IDENTIFIER;
-    return new Token(type, value, this.line, this.column);
+    return new Token(type, value, startLine, startColumn);
   }
   
   readComment() {
     let value = '';
+    const startLine = this.line;
+    const startColumn = this.column;
     
     if (this.getCurrentChar() === '/' && this.peekChar() === '/') {
       // Single line comment
+      value += '//';
+      this.advance(); this.advance();
+      
       while (this.getCurrentChar() && this.getCurrentChar() !== '\n') {
         value += this.getCurrentChar();
         this.advance();
       }
     } else if (this.getCurrentChar() === '/' && this.peekChar() === '*') {
       // Multi-line comment
+      value += '/*';
       this.advance(); // Skip /
       this.advance(); // Skip *
       
       while (this.getCurrentChar()) {
         if (this.getCurrentChar() === '*' && this.peekChar() === '/') {
+          value += '*/';
           this.advance(); // Skip *
           this.advance(); // Skip /
           break;
@@ -145,10 +175,12 @@ export class LexicalAnalyzer {
       }
     }
     
-    return new Token(TokenTypes.COMMENT, value, this.line, this.column);
+    return new Token(TokenTypes.COMMENT, value, startLine, startColumn);
   }
   
   async tokenize() {
+    console.log(`Starting tokenization of ${this.source.length} characters`);
+    
     while (this.position < this.source.length) {
       const char = this.getCurrentChar();
       
@@ -162,7 +194,7 @@ export class LexicalAnalyzer {
       
       // Newlines
       if (char === '\n') {
-        this.tokens.push(new Token(TokenTypes.NEWLINE, char, this.line, this.column));
+        this.tokens.push(new Token(TokenTypes.NEWLINE, '\\n', this.line, this.column));
         this.advance();
         continue;
       }
@@ -191,69 +223,97 @@ export class LexicalAnalyzer {
         continue;
       }
       
+      // Three-character operators
+      const threeChar = char + (this.peekChar() || '') + (this.peekChar(2) || '');
+      if (['===', '!=='].includes(threeChar)) {
+        this.tokens.push(new Token(TokenTypes.COMPARISON, threeChar, this.line, this.column));
+        this.advance(); this.advance(); this.advance();
+        continue;
+      }
+      
       // Two-character operators
       const twoChar = char + (this.peekChar() || '');
-      if (['==', '!=', '<=', '>=', '&&', '||', '++', '--', '+=', '-=', '*=', '/=', '=>', '===', '!=='].includes(twoChar)) {
-        const type = ['==', '!=', '<=', '>=', '===', '!=='].includes(twoChar) ? TokenTypes.COMPARISON :
-                    ['&&', '||'].includes(twoChar) ? TokenTypes.LOGICAL :
-                    ['++', '--'].includes(twoChar) ? TokenTypes.UNARY :
-                    '=>' === twoChar ? TokenTypes.ASSIGNMENT :
-                    TokenTypes.ASSIGNMENT;
+      if (['==', '!=', '<=', '>=', '&&', '||', '++', '--', '+=', '-=', '*=', '/=', '%=', '=>', '<<', '>>', '**'].includes(twoChar)) {
+        let type;
+        if (['==', '!=', '<=', '>='].includes(twoChar)) {
+          type = TokenTypes.COMPARISON;
+        } else if (['&&', '||'].includes(twoChar)) {
+          type = TokenTypes.LOGICAL;
+        } else if (['++', '--'].includes(twoChar)) {
+          type = TokenTypes.UNARY;
+        } else if (['+=', '-=', '*=', '/=', '%=', '=>'].includes(twoChar)) {
+          type = TokenTypes.ASSIGNMENT;
+        } else if (['<<', '>>', '**'].includes(twoChar)) {
+          type = TokenTypes.ARITHMETIC;
+        } else {
+          type = TokenTypes.ASSIGNMENT;
+        }
         
         this.tokens.push(new Token(type, twoChar, this.line, this.column));
-        this.advance();
-        this.advance();
+        this.advance(); this.advance();
         continue;
       }
       
       // Single character tokens
+      const startLine = this.line;
+      const startColumn = this.column;
+      
       switch (char) {
         case '(':
-          this.tokens.push(new Token(TokenTypes.LPAREN, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.LPAREN, char, startLine, startColumn));
           break;
         case ')':
-          this.tokens.push(new Token(TokenTypes.RPAREN, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.RPAREN, char, startLine, startColumn));
           break;
         case '{':
-          this.tokens.push(new Token(TokenTypes.LBRACE, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.LBRACE, char, startLine, startColumn));
           break;
         case '}':
-          this.tokens.push(new Token(TokenTypes.RBRACE, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.RBRACE, char, startLine, startColumn));
           break;
         case '[':
-          this.tokens.push(new Token(TokenTypes.LBRACKET, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.LBRACKET, char, startLine, startColumn));
           break;
         case ']':
-          this.tokens.push(new Token(TokenTypes.RBRACKET, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.RBRACKET, char, startLine, startColumn));
           break;
         case ';':
-          this.tokens.push(new Token(TokenTypes.SEMICOLON, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.SEMICOLON, char, startLine, startColumn));
           break;
         case ',':
-          this.tokens.push(new Token(TokenTypes.COMMA, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.COMMA, char, startLine, startColumn));
           break;
         case '.':
-          this.tokens.push(new Token(TokenTypes.DOT, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.DOT, char, startLine, startColumn));
           break;
         case '=':
-          this.tokens.push(new Token(TokenTypes.ASSIGNMENT, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.ASSIGNMENT, char, startLine, startColumn));
           break;
         case '+':
         case '-':
         case '*':
         case '/':
         case '%':
-          this.tokens.push(new Token(TokenTypes.ARITHMETIC, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.ARITHMETIC, char, startLine, startColumn));
           break;
         case '<':
         case '>':
-          this.tokens.push(new Token(TokenTypes.COMPARISON, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.COMPARISON, char, startLine, startColumn));
           break;
         case '!':
-          this.tokens.push(new Token(TokenTypes.UNARY, char, this.line, this.column));
+          this.tokens.push(new Token(TokenTypes.UNARY, char, startLine, startColumn));
+          break;
+        case '&':
+        case '|':
+          this.tokens.push(new Token(TokenTypes.LOGICAL, char, startLine, startColumn));
+          break;
+        case '?':
+          this.tokens.push(new Token(TokenTypes.LOGICAL, char, startLine, startColumn));
+          break;
+        case ':':
+          this.tokens.push(new Token(TokenTypes.ASSIGNMENT, char, startLine, startColumn));
           break;
         default:
-          // Unknown character - could throw error or ignore
           console.warn(`Unknown character encountered: '${char}' at line ${this.line}, column ${this.column}`);
           break;
       }
@@ -262,7 +322,19 @@ export class LexicalAnalyzer {
     }
     
     this.tokens.push(new Token(TokenTypes.EOF, null, this.line, this.column));
+    
+    console.log(`Tokenization completed. Generated ${this.tokens.length} tokens`);
+    console.log('Token summary:', this.getTokenSummary());
+    
     return this.tokens;
+  }
+  
+  getTokenSummary() {
+    const summary = {};
+    this.tokens.forEach(token => {
+      summary[token.type] = (summary[token.type] || 0) + 1;
+    });
+    return summary;
   }
   
   // Static method to validate module loading

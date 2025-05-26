@@ -6,10 +6,11 @@ export class SyntaxAnalyzer {
     if (!NodeTypes) {
       throw new Error('NodeTypes dependency not loaded');
     }
-     this.tokens = tokens.filter(t => t.type !== TokenTypes.WHITESPACE && t.type !== TokenTypes.COMMENT);
+    this.tokens = tokens.filter(t => t.type !== TokenTypes.WHITESPACE && t.type !== TokenTypes.COMMENT);
     this.position = 0;
     this.currentToken = this.tokens[0];
     this.NodeTypes = NodeTypes;
+    this.errors = []; // Add error collection
   }
   
   getCurrentToken() {
@@ -28,7 +29,9 @@ export class SyntaxAnalyzer {
   
   expect(tokenType) {
     if (!this.currentToken || this.currentToken.type !== tokenType) {
-      throw new Error(`Expected ${tokenType}, got ${this.currentToken?.type} at line ${this.currentToken?.line}`);
+      const error = `Expected ${tokenType}, got ${this.currentToken?.type} at line ${this.currentToken?.line}`;
+      this.errors.push(error);
+      throw new Error(error);
     }
     const token = this.currentToken;
     this.advance();
@@ -43,62 +46,106 @@ export class SyntaxAnalyzer {
     return this.currentToken && this.currentToken.value === value;
   }
   
-  parse() {
-    const program = new ASTNode(this.NodeTypes.PROGRAM);
-    
-    while (this.currentToken && this.currentToken.type !== TokenTypes.EOF) {
-      if (this.match(TokenTypes.NEWLINE)) {
-        this.advance();
-        continue;
-      }
-      
-      const statement = this.parseStatement();
-      if (statement) {
-        program.addChild(statement);
-      }
-    }
-    
-    return program;
-  }
-  
-  parseStatement() {
-    if (this.matchValue('function')) {
-      return this.parseFunctionDeclaration();
-    }
-    
-    if (this.matchValue('var') || this.matchValue('let') || this.matchValue('const')) {
-      return this.parseVariableDeclaration();
-    }
-    
-    if (this.matchValue('if')) {
-      return this.parseIfStatement();
-    }
-    
-    if (this.matchValue('while')) {
-      return this.parseWhileStatement();
-    }
-    
-    if (this.matchValue('for')) {
-      return this.parseForStatement();
-    }
-    
-    if (this.matchValue('return')) {
-      return this.parseReturnStatement();
-    }
-    
-    if (this.match(TokenTypes.LBRACE)) {
-      return this.parseBlockStatement();
-    }
-    
-    // Expression statement
-    const expr = this.parseExpression();
+  // Safely handle optional semicolons
+  consumeOptionalSemicolon() {
     if (this.match(TokenTypes.SEMICOLON)) {
       this.advance();
     }
+  }
+  
+  parse() {
+    try {
+      const program = new ASTNode(this.NodeTypes.PROGRAM);
+      
+      while (this.currentToken && this.currentToken.type !== TokenTypes.EOF) {
+        if (this.match(TokenTypes.NEWLINE)) {
+          this.advance();
+          continue;
+        }
+        
+        const statement = this.parseStatement();
+        if (statement) {
+          program.addChild(statement);
+        }
+      }
+      
+      return {
+        ast: program,
+        errors: this.errors
+      };
+    } catch (error) {
+      this.errors.push(error.message);
+      return {
+        ast: new ASTNode(this.NodeTypes.PROGRAM),
+        errors: this.errors
+      };
+    }
+  }
+  
+  parseStatement() {
+    try {
+      if (this.matchValue('function')) {
+        return this.parseFunctionDeclaration();
+      }
+      
+      if (this.matchValue('var') || this.matchValue('let') || this.matchValue('const')) {
+        return this.parseVariableDeclaration();
+      }
+      
+      if (this.matchValue('if')) {
+        return this.parseIfStatement();
+      }
+      
+      if (this.matchValue('while')) {
+        return this.parseWhileStatement();
+      }
+      
+      if (this.matchValue('for')) {
+        return this.parseForStatement();
+      }
+      
+      if (this.matchValue('return')) {
+        return this.parseReturnStatement();
+      }
+      
+      if (this.match(TokenTypes.LBRACE)) {
+        return this.parseBlockStatement();
+      }
+      
+      // Expression statement
+      const expr = this.parseExpression();
+      this.consumeOptionalSemicolon();
+      
+      const exprStmt = new ASTNode(NodeTypes.EXPRESSION_STATEMENT);
+      exprStmt.addChild(expr);
+      return exprStmt;
+    } catch (error) {
+      this.errors.push(error.message);
+      // Try to recover by advancing to next statement
+      this.synchronize();
+      return null;
+    }
+  }
+  
+  // Error recovery mechanism
+  synchronize() {
+    this.advance();
     
-    const exprStmt = new ASTNode(NodeTypes.EXPRESSION_STATEMENT);
-    exprStmt.addChild(expr);
-    return exprStmt;
+    while (this.currentToken) {
+      if (this.currentToken.type === TokenTypes.SEMICOLON) {
+        this.advance();
+        return;
+      }
+      
+      if (this.matchValue('function') || this.matchValue('var') || 
+          this.matchValue('let') || this.matchValue('const') ||
+          this.matchValue('if') || this.matchValue('while') || 
+          this.matchValue('for') || this.matchValue('return')) {
+        return;
+      }
+      
+      this.advance();
+    }
   }
   
   parseFunctionDeclaration() {
@@ -108,7 +155,7 @@ export class SyntaxAnalyzer {
     this.expect(TokenTypes.LPAREN);
     const params = [];
     
-    while (!this.match(TokenTypes.RPAREN)) {
+    while (!this.match(TokenTypes.RPAREN) && this.currentToken) {
       params.push(this.expect(TokenTypes.IDENTIFIER).value);
       if (this.match(TokenTypes.COMMA)) {
         this.advance();
@@ -135,9 +182,7 @@ export class SyntaxAnalyzer {
       initializer = this.parseExpression();
     }
     
-    if (this.match(TokenTypes.SEMICOLON)) {
-      this.advance();
-    }
+    this.consumeOptionalSemicolon();
     
     const varNode = new ASTNode(NodeTypes.VARIABLE_DECLARATION, name.value);
     varNode.setAttribute('declarationType', declType);
@@ -210,13 +255,11 @@ export class SyntaxAnalyzer {
     this.expect(TokenTypes.KEYWORD); // 'return'
     
     let argument = null;
-    if (!this.match(TokenTypes.SEMICOLON) && !this.match(TokenTypes.NEWLINE)) {
+    if (!this.match(TokenTypes.SEMICOLON) && !this.match(TokenTypes.NEWLINE) && this.currentToken) {
       argument = this.parseExpression();
     }
     
-    if (this.match(TokenTypes.SEMICOLON)) {
-      this.advance();
-    }
+    this.consumeOptionalSemicolon();
     
     const returnNode = new ASTNode(NodeTypes.RETURN_STATEMENT);
     if (argument) {
@@ -402,13 +445,13 @@ export class SyntaxAnalyzer {
   parsePostfixExpression() {
     let left = this.parsePrimaryExpression();
     
-    while (true) {
+    while (this.currentToken) {
       if (this.match(TokenTypes.LPAREN)) {
         // Function call
         this.advance();
         const args = [];
         
-        while (!this.match(TokenTypes.RPAREN)) {
+        while (!this.match(TokenTypes.RPAREN) && this.currentToken) {
           args.push(this.parseExpression());
           if (this.match(TokenTypes.COMMA)) {
             this.advance();
@@ -429,6 +472,7 @@ export class SyntaxAnalyzer {
         
         const memberNode = new ASTNode(NodeTypes.MEMBER_EXPRESSION);
         memberNode.setAttribute('property', property.value);
+        memberNode.setAttribute('computed', false);
         memberNode.addChild(left);
         
         left = memberNode;
@@ -453,12 +497,46 @@ export class SyntaxAnalyzer {
   }
   
   parsePrimaryExpression() {
-    if (this.match(TokenTypes.NUMBER) || this.match(TokenTypes.STRING) || this.matchValue('true') || this.matchValue('false') || this.matchValue('null')) {
+    if (this.match(TokenTypes.NUMBER)) {
       const token = this.currentToken;
       this.advance();
       
       const literalNode = new ASTNode(NodeTypes.LITERAL, token.value);
-      literalNode.setAttribute('dataType', token.type);
+      literalNode.setAttribute('dataType', 'number');
+      literalNode.setAttribute('rawValue', parseFloat(token.value));
+      
+      return literalNode;
+    }
+    
+    if (this.match(TokenTypes.STRING)) {
+      const token = this.currentToken;
+      this.advance();
+      
+      const literalNode = new ASTNode(NodeTypes.LITERAL, token.value);
+      literalNode.setAttribute('dataType', 'string');
+      literalNode.setAttribute('rawValue', token.value);
+      
+      return literalNode;
+    }
+    
+    if (this.matchValue('true') || this.matchValue('false')) {
+      const token = this.currentToken;
+      this.advance();
+      
+      const literalNode = new ASTNode(NodeTypes.LITERAL, token.value);
+      literalNode.setAttribute('dataType', 'boolean');
+      literalNode.setAttribute('rawValue', token.value === 'true');
+      
+      return literalNode;
+    }
+    
+    if (this.matchValue('null')) {
+      const token = this.currentToken;
+      this.advance();
+      
+      const literalNode = new ASTNode(NodeTypes.LITERAL, token.value);
+      literalNode.setAttribute('dataType', 'null');
+      literalNode.setAttribute('rawValue', null);
       
       return literalNode;
     }

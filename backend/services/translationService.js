@@ -252,6 +252,7 @@ export const translateCode = async (sourceCode, fromLanguage, toLanguage) => {
     }
     
     const result = await compiler.compile(sanitizedCode, fromLang, toLang);
+    console.log('Intermediate Code:', result.intermediateCode);
     
     if (result instanceof Promise) {
       throw new Error("Compiler returned promise instead of result - missing async handling");

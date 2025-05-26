@@ -46,6 +46,7 @@ export class CrossCompiler {
   async compile(sourceCode, fromLang, toLang) {
     try {
       console.log(`Starting compilation from ${fromLang} to ${toLang}`);
+      console.log(`Source code: ${sourceCode}`);
       
       // Validate input parameters
       if (typeof sourceCode !== 'string') {
@@ -53,31 +54,43 @@ export class CrossCompiler {
       }
 
       // Phase 1: Lexical Analysis
+      console.log('Phase 1: Starting lexical analysis...');
       const lexer = new LexicalAnalyzer(sourceCode);
       const tokens = await lexer.tokenize();
+      console.log(`Generated ${tokens.length} tokens`);
 
       // Phase 2: Syntax Analysis
+      console.log('Phase 2: Starting syntax analysis...');
       const parser = new SyntaxAnalyzer(tokens);
       const ast = await parser.parse();
+      console.log('AST generated successfully');
 
       // Phase 3: Semantic Analysis
+      console.log('Phase 3: Starting semantic analysis...');
       const semanticAnalyzer = new SemanticAnalyzer(ast);
       const semanticResult = await semanticAnalyzer.analyze();
 
       if (semanticResult.errors.length > 0) {
+        console.log('Semantic errors found:', semanticResult.errors);
         return this.formatError('Semantic errors', semanticResult.errors);
       }
 
       // Phase 4: Intermediate Code Generation
+      console.log('Phase 4: Starting intermediate code generation...');
       const icg = new IntermediateCodeGenerator(ast);
       const intermediateCode = await icg.generate();
+      console.log(`Generated ${intermediateCode.length} intermediate instructions`);
 
       // Phase 5: Code Optimization
+      console.log('Phase 5: Starting code optimization...');
       const optimizer = new CodeOptimizer(intermediateCode);
       const optimizedCode = await optimizer.optimize();
+      console.log('Code optimization completed');
 
       // Phase 6: Target Code Generation
-      const targetCode = await this.generateTargetCode(optimizedCode, toLang);
+      console.log('Phase 6: Starting target code generation...');
+      const targetCode = await this.generateTargetCode(optimizedCode, toLang, semanticResult.symbolTable);
+      console.log(`Target code generated: ${targetCode}`);
 
       return {
         success: true,
@@ -90,11 +103,12 @@ export class CrossCompiler {
       };
 
     } catch (error) {
+      console.error('Compilation error:', error);
       return this.formatError('Compilation error', error.message);
     }
   }
 
-  async generateTargetCode(optimizedCode, targetLang) {
+  async generateTargetCode(optimizedCode, targetLang, symbolTable = new Map()) {
     const lang = targetLang.toLowerCase();
     
     const generators = {
@@ -108,7 +122,7 @@ export class CrossCompiler {
       throw new Error(`Unsupported target language: ${targetLang}`);
     }
 
-    const generator = new generators[lang](optimizedCode);
+    const generator = new generators[lang](optimizedCode, symbolTable);
     return generator.generate();
   }
 
