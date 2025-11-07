@@ -147,7 +147,7 @@ fn calculate_fibonacci(n: u32) -> u32 {
       features: [
         "Unlimited translations",
         "Up to 10,000 lines of code",
-        "Access to all 20+ languages",
+        "Access to all 5+ languages",
         "Advanced optimization",
         "API access",
         "Priority support"
@@ -359,7 +359,7 @@ fn calculate_fibonacci(n: u32) -> u32 {
               <div className="bg-purple-500/20 p-3 rounded-xl w-12 h-12 flex items-center justify-center mb-4 group-hover:bg-purple-500/30 transition-all">
                 <Languages className="text-purple-400" />
               </div>
-              <h3 className="text-xl font-bold mb-2">20+ Languages</h3>
+              <h3 className="text-xl font-bold mb-2">5+ Languages</h3>
               <p className="text-slate-300">From JavaScript to Python, Rust, Go and many more</p>
             </div>
             
